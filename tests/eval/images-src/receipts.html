@@ -1,0 +1,160 @@
+<!doctype html>
+<!--
+  Synthetic SG receipt fixtures for the OCR eval harness.
+  Each .receipt is screenshotted individually into tests/eval/images/.
+  All arithmetic is exact (half-up cent rounding, IRAS order) — the
+  expected values live in tests/eval/cases.json.
+-->
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body { background: #777; margin: 0; padding: 20px; font-family: 'Courier New', Courier, monospace; }
+  .receipt {
+    width: 360px; background: #fdfdf8; color: #111; padding: 26px 20px 34px;
+    margin: 0 auto 30px; font-size: 14px; line-height: 1.45;
+    box-shadow: 0 1px 4px rgba(0,0,0,.4);
+  }
+  .c { text-align: center; }
+  .b { font-weight: 700; }
+  .big { font-size: 17px; }
+  .row { display: flex; justify-content: space-between; }
+  .row .n { white-space: pre-wrap; }
+  .sub { padding-left: 14px; }
+  hr { border: none; border-top: 1px dashed #333; margin: 8px 0; }
+  .stars { overflow: hidden; white-space: nowrap; }
+</style>
+</head>
+<body>
+
+<div class="receipt" id="syn-additive">
+  <div class="c b big">JUMBO SEAFOOD</div>
+  <div class="c">Riverside Point, 30 Merchant Road</div>
+  <div class="c">Singapore 058282</div>
+  <div class="c">GST Reg No: M90312889L</div>
+  <hr>
+  <div class="row"><span>Table: 12</span><span>PAX: 2</span></div>
+  <div class="row"><span>Bill: 002-1187</span><span>12/06/2026 19:42</span></div>
+  <hr>
+  <div class="row"><span class="n">1 Chilli Crab</span><span>88.00</span></div>
+  <div class="row"><span class="n">2 Steamed Rice</span><span>2.00</span></div>
+  <hr>
+  <div class="row"><span>Sub-Total</span><span>90.00</span></div>
+  <div class="row"><span>Service Charge 10%</span><span>9.00</span></div>
+  <div class="row"><span>GST 9%</span><span>8.91</span></div>
+  <hr>
+  <div class="row b big"><span>TOTAL</span><span>107.91</span></div>
+  <div class="c">Thank you, please come again</div>
+</div>
+
+<div class="receipt" id="syn-inclusive-foc">
+  <div class="c b big">Wang Cafe</div>
+  <div class="c">@ JURONG POINT</div>
+  <div class="c">GST Reg No: 200912345A</div>
+  <div class="c b big">ORDER NO:*7012</div>
+  <div class="stars">****************************************</div>
+  <div>12/06/2026 12:31   K002    C100921</div>
+  <div class="stars">****************************************</div>
+  <div class="row"><span class="n">1  Laksa Set w/ Drink</span><span>8.20</span></div>
+  <div class="row sub"><span class="n">** 1X Iced Tea</span><span>FOC</span></div>
+  <div class="row"><span class="n">Incl GST 9%</span><span>0.68</span></div>
+  <hr>
+  <div class="row b big"><span>TOTAL</span><span>8.20</span></div>
+  <div class="row"><span>VISA</span><span>8.20</span></div>
+  <div class="c">*Not subject to GST</div>
+  <div class="c">Thank you. Please come again</div>
+</div>
+
+<div class="receipt" id="syn-hawker">
+  <div class="c b big">Tiong Bahru Hainanese</div>
+  <div class="c b big">Chicken Rice</div>
+  <div class="c">Receipt No.: 1206202619012244</div>
+  <hr>
+  <div class="row"><span class="n">1 x Chicken Rice</span><span>$4.00</span></div>
+  <div class="row"><span class="n">1 x Char Siew Rice</span><span>$4.50</span></div>
+  <div class="row"><span class="n">1 x Barley</span><span>$1.50</span></div>
+  <hr>
+  <div class="row b big"><span>Total:</span><span>$10.00</span></div>
+  <div>Payment Method</div>
+  <div>QR: $10.00</div>
+  <div>Dine In</div>
+  <hr>
+  <div class="c">Powered by POSPal</div>
+  <div class="c">12-06-2026 19:01:22</div>
+</div>
+
+<div class="receipt" id="syn-discount-rounding">
+  <div class="c b big">IZAKAYA HANA</div>
+  <div class="c">313 Orchard Road #04-22</div>
+  <div class="c">GST Reg No: 201509876B</div>
+  <hr>
+  <div class="row"><span>Table: 8</span><span>PAX: 2</span></div>
+  <hr>
+  <div class="row"><span class="n">1 Sashimi Moriawase</span><span>30.00</span></div>
+  <div class="row"><span class="n">1 Wagyu Don</span><span>20.00</span></div>
+  <hr>
+  <div class="row"><span>Sub-Total</span><span>50.00</span></div>
+  <div class="row"><span>10% Member</span><span>-5.00</span></div>
+  <div class="row"><span>Service Charge (10%)</span><span>4.50</span></div>
+  <div class="row"><span>GST 9%</span><span>4.46</span></div>
+  <div class="row"><span>Rounding</span><span>-0.01</span></div>
+  <hr>
+  <div class="row b big"><span>Grand Total</span><span>$53.95</span></div>
+  <div class="c">Arigatou gozaimasu!</div>
+</div>
+
+<div class="receipt" id="syn-gst-only-qty">
+  <div class="c b big">YA KUN KAYA TOAST</div>
+  <div class="c">#B1-28 Raffles City</div>
+  <div class="c">GST Reg No: M2-0093412-7</div>
+  <hr>
+  <div class="row"><span>Rcpt: 8841</span><span>12/06/2026 08:12</span></div>
+  <hr>
+  <div class="row"><span class="n">2 Kaya Toast Set</span><span>4.40</span></div>
+  <div class="row"><span class="n">3 Kopi</span><span>3.60</span></div>
+  <hr>
+  <div class="row"><span>Subtotal</span><span>8.00</span></div>
+  <div class="row"><span>GST 9%</span><span>0.72</span></div>
+  <hr>
+  <div class="row b big"><span>TOTAL</span><span>8.72</span></div>
+  <div class="row"><span>NETS</span><span>8.72</span></div>
+  <div class="c">Thank you!</div>
+</div>
+
+<div class="receipt" id="syn-no-gst">
+  <div class="c b big">Mak Cik Nasi Lemak</div>
+  <div class="c">Blk 127 Toa Payoh Lor 1 #02-14</div>
+  <hr>
+  <div class="row"><span>Receipt: 3321</span><span>12-06-2026 18:44</span></div>
+  <hr>
+  <div class="row"><span class="n">1 x Nasi Lemak Ayam</span><span>$5.50</span></div>
+  <div class="row"><span class="n">1 x Teh Tarik</span><span>$1.40</span></div>
+  <hr>
+  <div class="row b big"><span>Total</span><span>$6.90</span></div>
+  <div class="row"><span>VISA</span><span>$6.90</span></div>
+  <div class="c">Not subject to GST</div>
+  <div class="c">Terima kasih!</div>
+</div>
+
+<div class="receipt" id="syn-svc1pct">
+  <div class="c b big">HONG KEE FISH SOUP</div>
+  <div class="c">Blk 22 Havelock Road #01-15</div>
+  <div class="c">GST REG NO: 201214847W</div>
+  <hr>
+  <div class="row"><span>No: 2</span><span>28/08/2026 12:46</span></div>
+  <hr>
+  <div class="row"><span class="n">7 Fish Meat Bee Hoon Soup</span><span>$49.00</span></div>
+  <div class="row"><span class="n">1 Dry Hor Fun (Large)</span><span>$17.50</span></div>
+  <hr>
+  <div class="row"><span>Total Amount:</span><span>$66.50</span></div>
+  <div class="row"><span>Service Charge 1%:</span><span>$0.67</span></div>
+  <div class="row"><span>GST 9%:</span><span>$6.04</span></div>
+  <div class="row"><span>Rounding Value:</span><span>$-0.01</span></div>
+  <hr>
+  <div class="row b big"><span>Grand Total:</span><span>$73.20</span></div>
+  <div class="row"><span>NETS:</span><span>$73.20</span></div>
+  <div class="c">THANK YOU! YOUR RECEIPT</div>
+</div>
+
+</body>
+</html>

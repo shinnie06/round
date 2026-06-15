@@ -1,0 +1,129 @@
+import { beforeEach, describe, it, expect } from 'vitest'
+import { cents } from '@/math/money'
+import { emptyRound, useStore } from '@/state/store'
+
+const a = () => useStore.getState().actions
+const round = () => useStore.getState().round
+
+beforeEach(() => {
+  a().reset()
+})
+
+const seed = () => {
+  a().addDiner('Shin')
+  a().addDiner('Mei')
+  a().addDiner('Raj')
+  a().addItem({ name: 'Beer', qty: 3, unitPrice: cents(900) })
+}
+
+describe('store — diners and items', () => {
+  it('addDiner assigns distinct colors and trims names', () => {
+    a().addDiner('  Shin ')
+    a().addDiner('Mei')
+    const [d1, d2] = round().diners
+    expect(d1!.name).toBe('Shin')
+    expect(d1!.colorIdx).not.toBe(d2!.colorIdx)
+  })
+
+  it('ignores empty names', () => {
+    a().addDiner('   ')
+    expect(round().diners).toHaveLength(0)
+  })
+
+  it('removeDiner strips explicit assignments', () => {
+    seed()
+    const [shin, mei] = round().diners
+    const item = round().items[0]!
+    a().toggleAssignment(item.id, mei!.id) // explicit: [shin, raj]
+    a().removeDiner(shin!.id)
+    expect(round().items[0]!.assignedDinerIds).toEqual([round().diners[1]!.id])
+  })
+})
+
+describe('store — everyone-sentinel toggle matrix', () => {
+  it('toggling OFF everyone materializes the explicit n−1 list', () => {
+    seed()
+    const item = round().items[0]!
+    const mei = round().diners[1]!
+    a().toggleAssignment(item.id, mei.id)
+    const ids = round().diners.map((d) => d.id)
+    expect(round().items[0]!.assignedDinerIds).toEqual([ids[0], ids[2]])
+  })
+
+  it('re-adding the last missing diner collapses back to []', () => {
+    seed()
+    const item = round().items[0]!
+    const mei = round().diners[1]!
+    a().toggleAssignment(item.id, mei.id)
+    a().toggleAssignment(item.id, mei.id)
+    expect(round().items[0]!.assignedDinerIds).toEqual([])
+  })
+
+  it('the last assigned diner cannot be toggled off', () => {
+    seed()
+    const item = round().items[0]!
+    const [shin, mei, raj] = round().diners
+    a().toggleAssignment(item.id, shin!.id)
+    a().toggleAssignment(item.id, mei!.id)
+    a().toggleAssignment(item.id, raj!.id) // would leave nobody — refused
+    expect(round().items[0]!.assignedDinerIds).toEqual([raj!.id])
+  })
+})
+
+describe('store — load, read-only, reset', () => {
+  it('loadRound with readOnly flags the session', () => {
+    a().loadRound(emptyRound(), { readOnly: true })
+    expect(useStore.getState().readOnly).toBe(true)
+  })
+
+  it('enterManual clears readOnly and opens the workspace', () => {
+    a().loadRound(emptyRound(), { readOnly: true })
+    a().enterManual()
+    expect(useStore.getState().readOnly).toBe(false)
+    expect(useStore.getState().screen).toBe('workspace')
+  })
+
+  it('reset returns to a pristine splash', () => {
+    seed()
+    a().setScreen('settle')
+    a().reset()
+    expect(round()).toEqual(emptyRound())
+    expect(useStore.getState().screen).toBe('splash')
+  })
+
+  it('discount clamps at zero, pcts clamp to [0,1]', () => {
+    a().setDiscount(cents(-100))
+    expect(round().discount).toBe(0)
+    a().setServicePct(2)
+    expect(round().servicePct).toBe(1)
+    a().setGstPct(-1)
+    expect(round().gstPct).toBe(0)
+  })
+})
+
+describe('store — rounding', () => {
+  it('setRounding stores signed cents and reset clears it', () => {
+    a().setRounding(cents(-2))
+    expect(round().rounding).toBe(-2)
+    a().reset()
+    expect(round().rounding).toBe(0)
+  })
+})
+
+describe('store — one-tap assignment (assignOnly / assignEveryone)', () => {
+  it('assignOnly assigns the item to exactly one diner in one action', () => {
+    seed()
+    const item = round().items[0]!
+    const raj = round().diners[2]!
+    a().assignOnly(item.id, raj.id)
+    expect(round().items[0]!.assignedDinerIds).toEqual([raj.id])
+  })
+  it('assignEveryone restores the everyone sentinel', () => {
+    seed()
+    const item = round().items[0]!
+    const raj = round().diners[2]!
+    a().assignOnly(item.id, raj.id)
+    a().assignEveryone(item.id)
+    expect(round().items[0]!.assignedDinerIds).toEqual([])
+  })
+})

@@ -1,0 +1,122 @@
+[
+  {
+    "image": "real-heavenly-wang.jpeg",
+    "label": "real: Heavenly Wang — Incl GST + FOC set-meal lines",
+    "verdict": "green",
+    "totalCents": 1040,
+    "items": 1,
+    "servicePct": 0,
+    "gstPct": 0
+  },
+  {
+    "image": "real-watami.jpeg",
+    "label": "real: Watami — discount + svc + GST + rounding",
+    "verdict": "green",
+    "totalCents": 7175,
+    "items": 5,
+    "servicePct": 0.1,
+    "gstPct": 0.09
+  },
+  {
+    "image": "real-popiah.jpeg",
+    "label": "real: Ann Chin Popiah — hawker, takeaway surcharge",
+    "verdict": "green",
+    "totalCents": 630,
+    "items": 3,
+    "servicePct": 0,
+    "gstPct": 0
+  },
+  {
+    "image": "real-rave.jpeg",
+    "label": "real: RAVE Marina Sq — split payments (Paynow + Visa)",
+    "verdict": "green",
+    "totalCents": 40526,
+    "items": 1,
+    "servicePct": 0.1,
+    "gstPct": 0.09
+  },
+  {
+    "image": "real-kopitiam14.jpeg",
+    "label": "real: kopitiam 14 items + bilingual descriptor lines — beyond the 8B model, must flag",
+    "verdict": "flagged",
+    "totalCents": 8997
+  },
+  {
+    "image": "real-hongheng.jpeg",
+    "label": "real: Hong Heng — model misreads an item price, must flag",
+    "verdict": "flagged",
+    "totalCents": 7320
+  },
+  {
+    "image": "real-handwritten.jpeg",
+    "label": "real: handwritten chit — must flag, never false-green",
+    "verdict": "flagged",
+    "totalCents": 7050
+  },
+  {
+    "image": "real-hotpot-cutoff.jpeg",
+    "label": "real: hotpot photo with grand total cropped out — must flag",
+    "verdict": "flagged"
+  },
+  {
+    "image": "syn-additive.png",
+    "label": "syn: restaurant additive svc 10% + GST 9%",
+    "verdict": "green",
+    "totalCents": 10791,
+    "items": 2,
+    "servicePct": 0.1,
+    "gstPct": 0.09
+  },
+  {
+    "image": "syn-inclusive-foc.png",
+    "label": "syn: quick service Incl GST + FOC line",
+    "verdict": "green",
+    "totalCents": 820,
+    "items": 1,
+    "servicePct": 0,
+    "gstPct": 0
+  },
+  {
+    "image": "syn-hawker.png",
+    "label": "syn: hawker, items only",
+    "verdict": "green",
+    "totalCents": 1000,
+    "items": 3,
+    "servicePct": 0,
+    "gstPct": 0
+  },
+  {
+    "image": "syn-discount-rounding.png",
+    "label": "syn: member discount + svc + GST + cash rounding",
+    "verdict": "green",
+    "totalCents": 5395,
+    "items": 2,
+    "servicePct": 0.1,
+    "gstPct": 0.09
+  },
+  {
+    "image": "syn-gst-only-qty.png",
+    "label": "syn: GST only (no service), qty > 1 lines",
+    "verdict": "green",
+    "totalCents": 872,
+    "items": 2,
+    "servicePct": 0,
+    "gstPct": 0.09
+  },
+  {
+    "image": "syn-no-gst.png",
+    "label": "syn: GST-unregistered, payment row temptation",
+    "verdict": "green",
+    "totalCents": 690,
+    "items": 2,
+    "servicePct": 0,
+    "gstPct": 0
+  },
+  {
+    "image": "syn-svc1pct.png",
+    "label": "syn: 1% service charge + GST whose printed cent beats the 9% recompute",
+    "verdict": "green",
+    "totalCents": 7320,
+    "items": 2
+  }
+]

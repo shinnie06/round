@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!--
+    Round — "the split ring"
+    The bill as a ring divided into four unequal arcs (42/26/19/13 —
+    a real split), drawn with the app's paper-cream on warm ink.
+    The amber arc is whose round it is. The dot is the coin on the table.
+  -->
+  <g fill="none" stroke-linecap="round" stroke-width="7">
+    <path d="M 32 9 A 23 23 0 0 1 53.72 39.56" stroke="#e8a14b"/>
+    <path d="M 48.49 48.03 A 23 23 0 0 1 23.46 53.36" stroke="#f1e9d6"/>
+    <path d="M 15.23 47.74 A 23 23 0 0 1 9.13 29.52" stroke="#f1e9d6"/>
+    <path d="M 12.33 20.09 A 23 23 0 0 1 22.28 11.15" stroke="#f1e9d6"/>
+  </g>
+  <circle cx="32" cy="32" r="4.5" fill="#f1e9d6"/>
+</svg>
