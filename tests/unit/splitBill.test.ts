@@ -114,3 +114,67 @@ describe('splitBill — rounding line', () => {
     expect(s.residual).toBe(-2)
   })
 })
+
+describe('splitBill — portions', () => {
+  // Local factory: an Item carrying explicit portions (the file's `item()`
+  // helper only builds un-split items). qty/unitPrice given; item-level
+  // assignedDinerIds is dormant when portioned, so default it to [].
+  const portioned = (
+    id: string,
+    unitPrice: number,
+    qty: number,
+    portions: { units: number; assignedDinerIds: string[] }[],
+  ): Item => ({
+    id,
+    name: id,
+    qty,
+    unitPrice: cents(unitPrice),
+    assignedDinerIds: [],
+    portions,
+  })
+
+  it('the worked fareware scenario: P1/P2/P3 pay, M is treated on Adobo + Chicken', () => {
+    const state = round({
+      diners: [diner('P1'), diner('P2'), diner('P3'), diner('M')],
+      items: [
+        // 5× Snapper @ 1800 — un-split, everyone (M DOES pay a share here)
+        item('snapper', 1800, 5, []),
+        // 3× Adobo @ 1400 — 1u solo P1, 2u shared P1/P2/P3 (M excluded)
+        portioned('adobo', 1400, 3, [
+          { units: 1, assignedDinerIds: ['P1'] },
+          { units: 2, assignedDinerIds: ['P1', 'P2', 'P3'] },
+        ]),
+        // 3× Chicken @ 1000 — 1u solo P2, 2u shared P1/P2/P3 (M excluded)
+        portioned('chicken', 1000, 3, [
+          { units: 1, assignedDinerIds: ['P2'] },
+          { units: 2, assignedDinerIds: ['P1', 'P2', 'P3'] },
+        ]),
+      ],
+    })
+    const s = splitBill(state)
+
+    const food = (id: string) => s.perDiner.find((d) => d.dinerId === id)!.food
+    const tot = (id: string) => s.perDiner.find((d) => d.dinerId === id)!.total
+
+    // Per-diner food (verified numerically against distributeProportionally):
+    //   Snapper 9000/4 = [2250,2250,2250,2250]
+    //   Adobo A 1400→P1; Adobo B 2800/[1,1,1]=[934,933,933]
+    //   Chicken A 1000→P2; Chicken B 2000/[1,1,1]=[667,667,666]
+    expect(food('P1')).toBe(2250 + 1400 + 934 + 667) // 5251
+    expect(food('P2')).toBe(2250 + 933 + 1000 + 667) // 4850
+    expect(food('P3')).toBe(2250 + 933 + 666) // 3849
+    expect(food('M')).toBe(2250) // Snapper only
+
+    // subtotal 16200 → service 1620 → gst 1604 → grand 19424
+    expect(s.breakdown.subtotal).toBe(16200)
+    expect(s.breakdown.grandTotal).toBe(19424)
+
+    // Per-diner totals and THE invariant
+    expect(tot('P1')).toBe(6296)
+    expect(tot('P2')).toBe(5815)
+    expect(tot('P3')).toBe(4615)
+    expect(tot('M')).toBe(2698)
+    expect(total(s)).toBe(19424)
+    expect(total(s)).toBe(s.breakdown.grandTotal)
+  })
+})

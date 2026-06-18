@@ -2,7 +2,7 @@ import { addC, cents, type Cents, ZERO } from './money'
 import { applyCharges, type ChargeBreakdown } from './singapore'
 import { distributeProportionally } from './proportional'
 import { distributeResidual } from './residual'
-import { lineTotal, type RoundState } from '@/state/types'
+import { lineTotal, portionTotal, isPortioned, type Diner, type RoundState } from '@/state/types'
 
 /**
  * splitBill — the full engine pipeline, in one pass:
@@ -34,25 +34,63 @@ export interface BillSplit {
   residualDinerId: string | null
 }
 
+// `[]` → everyone; else the explicit ids that still exist. Identical rule at
+// item and portion level (sentinel-meaning-identical invariant). The []-check
+// is BEFORE the filter, so literal-[] (everyone) and all-unknown-after-filter
+// ([] → skip) are correctly distinct.
+function resolveParticipants(
+  assigned: string[],
+  diners: Diner[],
+  idx: Map<string, number>,
+): string[] {
+  return assigned.length === 0
+    ? diners.map((d) => d.id)
+    : assigned.filter((id) => idx.has(id))
+}
+
+// Split an exact-cent cost equally across participants (largest remainder) and
+// accumulate into food[]. Empty participants → deposit nothing (orphan/skip),
+// exactly like today's continue.
+function allocateEqually(
+  cost: Cents,
+  participants: string[],
+  idx: Map<string, number>,
+  food: Cents[],
+): void {
+  if (participants.length === 0) return
+  const shares = distributeProportionally(
+    cost,
+    participants.map(() => 1),
+  )
+  participants.forEach((id, k) => {
+    const i = idx.get(id)!
+    food[i] = addC(food[i]!, shares[k]!)
+  })
+}
+
 export function splitBill(state: RoundState): BillSplit {
   const { diners, items } = state
   const idx = new Map(diners.map((d, i) => [d.id, i]))
   const food: Cents[] = diners.map(() => ZERO)
 
   for (const item of items) {
-    const participants =
-      item.assignedDinerIds.length === 0
-        ? diners.map((d) => d.id)
-        : item.assignedDinerIds.filter((id) => idx.has(id))
-    if (participants.length === 0) continue
-    const shares = distributeProportionally(
-      lineTotal(item),
-      participants.map(() => 1),
-    )
-    participants.forEach((id, k) => {
-      const i = idx.get(id)!
-      food[i] = addC(food[i]!, shares[k]!)
-    })
+    if (isPortioned(item)) {
+      // Σ(portion.units·unitPrice) === lineTotal (units conservation, enforced
+      // by store + schema), so when no portion is orphaned the line's total food
+      // is unchanged — only WHO absorbs WHICH units differs.
+      for (const p of item.portions!) {
+        const cost = portionTotal(item.unitPrice, p.units)
+        allocateEqually(cost, resolveParticipants(p.assignedDinerIds, diners, idx), idx, food)
+      }
+    } else {
+      // Un-split path — byte-identical to today.
+      allocateEqually(
+        lineTotal(item),
+        resolveParticipants(item.assignedDinerIds, diners, idx),
+        idx,
+        food,
+      )
+    }
   }
 
   const subtotal = addC(...food)
