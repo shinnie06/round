@@ -16,12 +16,27 @@ export const dinerZod = z.object({
   colorIdx: z.number().int().min(0),
 })
 
+/** A portion off the wire. `units` is a positive whole number; a malformed
+ *  units (0/negative/non-int) is COERCED to 0 via `.catch(0)` rather than
+ *  thrown, so the item-level Σ check can degrade the whole split to un-split
+ *  instead of nulling the entire round (repair-at-the-boundary stance).
+ *  The cross-portion "Σ units === qty" invariant is checked at the ITEM
+ *  level (a portion can't see its siblings or its parent's qty). The schema
+ *  does NOT check assignee existence — that is a split-time concern. */
+export const portionZod = z.object({
+  units: z.number().int().min(1).catch(0),
+  assignedDinerIds: z.array(z.string()),
+})
+
 export const itemZod = z.object({
   id: z.string().min(1),
   name: z.string(),
   qty: z.number().int().min(1),
   unitPrice: centsZod,
   assignedDinerIds: z.array(z.string()),
+  /** OPTIONAL — absent in every v1 link, draft, and OCR output, which all
+   *  parse unchanged (no `.default()`, so the key stays `undefined`). */
+  portions: z.array(portionZod).optional(),
 })
 
 export const roundStateZod = z.object({
