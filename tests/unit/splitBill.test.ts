@@ -197,4 +197,18 @@ describe('splitBill — portions', () => {
     )
     expect(split.breakdown.grandTotal).toBe(unsplit.breakdown.grandTotal)
   })
+
+  it('each portion gets independent largest-remainder odd cents', () => {
+    // qty 2 @ 100¢, single portion of 2 units split across 3 payers.
+    // cost = 2·100 = 200; 200/[1,1,1] = [67,67,66] (Σ===200, ties→lowest idx).
+    const state = round({
+      diners: [diner('a'), diner('b'), diner('c')],
+      items: [portioned('p', 100, 2, [{ units: 2, assignedDinerIds: ['a', 'b', 'c'] }])],
+      servicePct: 0,
+      gstPct: 0,
+    })
+    const s = splitBill(state)
+    expect(s.perDiner.map((d) => d.food)).toEqual([67, 67, 66])
+    expect(s.perDiner.reduce((acc, d) => acc + d.food, 0)).toBe(200)
+  })
 })
