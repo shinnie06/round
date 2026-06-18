@@ -28,16 +28,34 @@ export const portionZod = z.object({
   assignedDinerIds: z.array(z.string()),
 })
 
-export const itemZod = z.object({
-  id: z.string().min(1),
-  name: z.string(),
-  qty: z.number().int().min(1),
-  unitPrice: centsZod,
-  assignedDinerIds: z.array(z.string()),
-  /** OPTIONAL — absent in every v1 link, draft, and OCR output, which all
-   *  parse unchanged (no `.default()`, so the key stays `undefined`). */
-  portions: z.array(portionZod).optional(),
-})
+export const itemZod = z
+  .object({
+    id: z.string().min(1),
+    name: z.string(),
+    qty: z.number().int().min(1),
+    unitPrice: centsZod,
+    assignedDinerIds: z.array(z.string()),
+    /** OPTIONAL — absent in every v1 link, draft, and OCR output, which all
+     *  parse unchanged (no `.default()`, so the key stays `undefined`). */
+    portions: z.array(portionZod).optional(),
+  })
+  // Tolerant repair, mirroring "never throw at the boundary": a structurally
+  // valid but inconsistent split is DOWNGRADED to un-split, not rejected, so
+  // one bad item can't nuke a whole share link. assignedDinerIds is always
+  // RETAINED on downgrade (it was never touched).
+  .transform((it) => {
+    if (!it.portions || it.portions.length === 0) {
+      const { portions: _omit, ...rest } = it // normalize []/undefined -> omit key
+      return rest
+    }
+    const sum = it.portions.reduce((a, p) => a + p.units, 0)
+    if (sum !== it.qty) {
+      // units don't conserve (incl. a coerced-0)
+      const { portions: _bad, ...rest } = it // -> drop split, keep whole-line behavior
+      return rest
+    }
+    return it
+  })
 
 export const roundStateZod = z.object({
   venue: z.string(),
