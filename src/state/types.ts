@@ -70,3 +70,9 @@ export const lineTotal = (it: Item): Cents => cents(it.qty * it.unitPrice)
  *  positive integer (portionZod + store clamps) and `unitPrice` is int. */
 export const portionTotal = (unitPrice: Cents, units: number): Cents =>
   cents(units * unitPrice)
+
+/** The single predicate every consumer branches on. `portions: []` (from a
+ *  hand-rolled link) is treated as ABSENT, so split engine, UI and store
+ *  fall back to assignedDinerIds. */
+export const isPortioned = (it: Item): boolean =>
+  Array.isArray(it.portions) && it.portions.length > 0
