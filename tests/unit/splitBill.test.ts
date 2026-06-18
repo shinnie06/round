@@ -211,4 +211,38 @@ describe('splitBill — portions', () => {
     expect(s.perDiner.map((d) => d.food)).toEqual([67, 67, 66])
     expect(s.perDiner.reduce((acc, d) => acc + d.food, 0)).toBe(200)
   })
+
+  it('an orphaned portion (all ids unknown) is excluded — subtotal recomputes lower', () => {
+    // diners a, b. Item qty 2 @ 1000:
+    //   portion 1 → ['ghost'] (unknown) → orphan, skipped, 1000¢ NOT billed
+    //   portion 2 → ['a']             → a +1000
+    // Plus an everyone item @ 500 so b still pays something.
+    const state = round({
+      diners: [diner('a'), diner('b')],
+      items: [
+        portioned('orphaned', 1000, 2, [
+          { units: 1, assignedDinerIds: ['ghost'] },
+          { units: 1, assignedDinerIds: ['a'] },
+        ]),
+        item('shared', 500, 1, []), // everyone → [250,250]
+      ],
+      servicePct: 0,
+      gstPct: 0,
+    })
+    const s = splitBill(state)
+
+    const a = s.perDiner.find((d) => d.dinerId === 'a')!
+    const b = s.perDiner.find((d) => d.dinerId === 'b')!
+    // a: orphan-portion 1000 + half of shared 250 = 1250; b: half of shared 250.
+    expect(a.food).toBe(1250)
+    expect(b.food).toBe(250)
+    // subtotal = 1250 + 250 = 1500, NOT 2500 — the orphan's 1000¢ is excluded.
+    expect(s.breakdown.subtotal).toBe(1500)
+    expect(s.breakdown.grandTotal).toBe(1500)
+    // Excluded, not residual-pinned:
+    expect(s.residual).toBe(0)
+    expect(s.residualDinerId).toBeNull()
+    // The global invariant still holds against the (lower) grand total.
+    expect(s.perDiner.reduce((acc, d) => acc + d.total, 0)).toBe(s.breakdown.grandTotal)
+  })
 })
