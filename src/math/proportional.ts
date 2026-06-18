@@ -22,8 +22,11 @@ export function distributeProportionally(total: Cents, weights: number[]): Cents
   if (n === 0) return []
 
   // Mirror negative totals: distribute the magnitude, then negate.
+  // Normalize a zero share to +0 (not -0): negating a 0-cent share yields
+  // JS negative zero, which is numerically 0 but fails Object.is(-0, 0) — so a
+  // zero-food diner's discount share would read as -0. Keep money canonical.
   if (total < 0) {
-    return distributeProportionally(cents(-total), weights).map((c) => cents(-c))
+    return distributeProportionally(cents(-total), weights).map((c) => cents(c === 0 ? 0 : -c))
   }
 
   const wSum = weights.reduce<number>((a, b) => a + b, 0)
