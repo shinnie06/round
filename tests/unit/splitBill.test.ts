@@ -302,4 +302,46 @@ describe('splitBill — portions', () => {
     expect(m.food).toBe(2250)
     expect(total(s)).toBe(s.breakdown.grandTotal)
   })
+
+  it('single-diner round with portions sends all cents to the one diner', () => {
+    const state = round({
+      diners: [diner('solo')],
+      items: [
+        portioned('line', 333, 3, [
+          { units: 1, assignedDinerIds: ['solo'] },
+          { units: 2, assignedDinerIds: [] }, // [] → everyone == solo
+        ]),
+      ],
+      servicePct: 0,
+      gstPct: 0,
+    })
+    const s = splitBill(state)
+    expect(s.perDiner[0]!.food).toBe(999) // 3·333
+    expect(s.breakdown.subtotal).toBe(999)
+    expect(total(s)).toBe(s.breakdown.grandTotal)
+  })
+
+  it('portions: [] and portions: undefined take the un-split branch (isPortioned false)', () => {
+    const diners = [diner('a'), diner('b')]
+    const baseline = splitBill(round({ diners, items: [item('x', 1000, 1, [])] }))
+    // portions: [] — empty array, isPortioned false, falls back to assignedDinerIds.
+    const emptyPortions: Item = {
+      id: 'x',
+      name: 'x',
+      qty: 1,
+      unitPrice: cents(1000),
+      assignedDinerIds: [],
+      portions: [],
+    }
+    const sEmpty = splitBill(round({ diners, items: [emptyPortions] }))
+    expect(sEmpty.perDiner.map((d) => d.food)).toEqual(
+      baseline.perDiner.map((d) => d.food),
+    )
+    // portions absent (undefined) is the plain item() factory — equals baseline.
+    const sAbsent = splitBill(round({ diners, items: [item('x', 1000, 1, [])] }))
+    expect(sAbsent.perDiner.map((d) => d.food)).toEqual(
+      baseline.perDiner.map((d) => d.food),
+    )
+    expect(baseline.perDiner.map((d) => d.food)).toEqual([500, 500])
+  })
 })
