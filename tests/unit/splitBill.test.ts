@@ -245,4 +245,19 @@ describe('splitBill — portions', () => {
     // The global invariant still holds against the (lower) grand total.
     expect(s.perDiner.reduce((acc, d) => acc + d.total, 0)).toBe(s.breakdown.grandTotal)
   })
+
+  it('an empty-sentinel portion bills everyone (distinct from all-unknown skip)', () => {
+    // qty 2 @ 1000, single portion with the [] everyone sentinel, 2 diners.
+    // [] → everyone → 2000/[1,1] = [1000,1000]. (If [] were mistakenly filtered
+    // it would skip and bill nothing — this asserts the sentinel branch.)
+    const state = round({
+      diners: [diner('a'), diner('b')],
+      items: [portioned('p', 1000, 2, [{ units: 2, assignedDinerIds: [] }])],
+      servicePct: 0,
+      gstPct: 0,
+    })
+    const s = splitBill(state)
+    expect(s.perDiner.map((d) => d.food)).toEqual([1000, 1000])
+    expect(s.breakdown.subtotal).toBe(2000)
+  })
 })
