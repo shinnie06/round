@@ -260,4 +260,26 @@ describe('splitBill — portions', () => {
     expect(s.perDiner.map((d) => d.food)).toEqual([1000, 1000])
     expect(s.breakdown.subtotal).toBe(2000)
   })
+
+  it('a fully-treated diner pays 0 across all portions (food/charges/total 0)', () => {
+    // diners payer + treated. Single portioned line, every portion excludes treated.
+    const state = round({
+      diners: [diner('payer'), diner('treated')],
+      items: [
+        portioned('line', 1000, 2, [
+          { units: 1, assignedDinerIds: ['payer'] },
+          { units: 1, assignedDinerIds: ['payer'] },
+        ]),
+      ],
+      discount: cents(100),
+    })
+    const s = splitBill(state)
+    const treated = s.perDiner.find((d) => d.dinerId === 'treated')!
+    expect(treated.food).toBe(0)
+    expect(treated.discount).toBe(0)
+    expect(treated.service).toBe(0)
+    expect(treated.gst).toBe(0)
+    expect(treated.total).toBe(0)
+    expect(total(s)).toBe(s.breakdown.grandTotal)
+  })
 })
