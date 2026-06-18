@@ -282,4 +282,24 @@ describe('splitBill — portions', () => {
     expect(treated.total).toBe(0)
     expect(total(s)).toBe(s.breakdown.grandTotal)
   })
+
+  it('a diner added after a split pays []-sentinel portions but zero of explicit portions', () => {
+    // 4 diners; M is the "late add". Snapper is everyone-sentinel ([]); Adobo's
+    // portions are explicit [P1,P2,P3] and a solo [P1] — M is absent from both.
+    const state = round({
+      diners: [diner('P1'), diner('P2'), diner('P3'), diner('M')],
+      items: [
+        item('snapper', 1800, 5, []), // [] everyone → M shares 9000/4 = 2250
+        portioned('adobo', 1400, 3, [
+          { units: 1, assignedDinerIds: ['P1'] },
+          { units: 2, assignedDinerIds: ['P1', 'P2', 'P3'] },
+        ]),
+      ],
+    })
+    const s = splitBill(state)
+    const m = s.perDiner.find((d) => d.dinerId === 'M')!
+    // M gets a share of the [] Snapper portion ONLY; zero from explicit Adobo.
+    expect(m.food).toBe(2250)
+    expect(total(s)).toBe(s.breakdown.grandTotal)
+  })
 })
