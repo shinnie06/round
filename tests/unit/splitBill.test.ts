@@ -177,4 +177,24 @@ describe('splitBill — portions', () => {
     expect(total(s)).toBe(19424)
     expect(total(s)).toBe(s.breakdown.grandTotal)
   })
+
+  it('a single full-allocation portion splits identically to an un-split item', () => {
+    const diners = [diner('a'), diner('b'), diner('c')]
+    // un-split: qty 3 @ 1003, everyone
+    const unsplit = splitBill(round({ diners, items: [item('x', 1003, 3, [])] }))
+    // portioned: ONE portion covering all 3 units, everyone sentinel inside
+    const split = splitBill(
+      round({
+        diners,
+        items: [portioned('x', 1003, 3, [{ units: 3, assignedDinerIds: [] }])],
+      }),
+    )
+    expect(split.perDiner.map((d) => d.food)).toEqual(
+      unsplit.perDiner.map((d) => d.food),
+    )
+    expect(split.perDiner.map((d) => d.total)).toEqual(
+      unsplit.perDiner.map((d) => d.total),
+    )
+    expect(split.breakdown.grandTotal).toBe(unsplit.breakdown.grandTotal)
+  })
 })
