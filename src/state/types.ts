@@ -80,3 +80,9 @@ export const isPortioned = (it: Item): boolean =>
 /** Units accounted for by portions. Equals qty when the invariant holds. */
 export const portionedUnits = (it: Item): number =>
   it.portions ? it.portions.reduce((a, p) => a + p.units, 0) : 0
+
+/** UI-queryable mirror of addPortion's no-op condition: a portion can be
+ *  carved only if some portion has >=2 units to spare. Colocated so the
+ *  disabled-state logic stays out of the component. */
+export const canAddPortion = (it: Item): boolean =>
+  isPortioned(it) && it.portions!.some((p) => p.units >= 2)
