@@ -228,7 +228,9 @@ Steps:
     })
 
     it('throws when units × unitPrice is not an integer', () => {
-      expect(() => portionTotal(cents(100), 1.5)).toThrow()
+      // 1.5 × 3 = 4.5 (non-integer) → cents() throws. (NB: 1.5 × 100 = 150 is
+      // an integer and would NOT throw — the product must be fractional.)
+      expect(() => portionTotal(cents(3), 1.5)).toThrow()
     })
   })
   ```
