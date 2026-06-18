@@ -66,6 +66,27 @@ describe('roundStateZod — scannedTotal compatibility', () => {
     expect(parsed).not.toBeNull()
     expect(parsed!.scannedTotal).toBeNull()
   })
+
+  it('old round with no portions / rounding / scannedTotal still parses, items portion-free', async () => {
+    const { parseRoundState } = await import('@/state/schema')
+    const legacy = {
+      venue: 'Jumbo',
+      diners: [{ id: 'd1', name: 'Shin', colorIdx: 0 }],
+      items: [
+        { id: 'i1', name: 'Chilli Crab', qty: 1, unitPrice: 8800, assignedDinerIds: [] },
+      ],
+      discount: 0,
+      servicePct: 0.1,
+      gstPct: 0.09,
+      scan: null,
+    }
+    const parsed = parseRoundState(legacy)
+    expect(parsed).not.toBeNull()
+    expect(parsed!.rounding).toBe(0)
+    expect(parsed!.scannedTotal).toBeNull()
+    expect('portions' in parsed!.items[0]!).toBe(false)
+    expect(parsed!.items[0]!.assignedDinerIds).toEqual([])
+  })
 })
 
 describe('RECEIPT_JSON_SCHEMA', () => {
