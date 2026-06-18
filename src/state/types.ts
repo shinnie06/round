@@ -76,3 +76,7 @@ export const portionTotal = (unitPrice: Cents, units: number): Cents =>
  *  fall back to assignedDinerIds. */
 export const isPortioned = (it: Item): boolean =>
   Array.isArray(it.portions) && it.portions.length > 0
+
+/** Units accounted for by portions. Equals qty when the invariant holds. */
+export const portionedUnits = (it: Item): number =>
+  it.portions ? it.portions.reduce((a, p) => a + p.units, 0) : 0

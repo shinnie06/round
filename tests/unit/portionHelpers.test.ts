@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { cents } from '@/math/money'
-import { portionTotal, isPortioned, type Item } from '@/state/types'
+import { portionTotal, isPortioned, portionedUnits, type Item } from '@/state/types'
 
 describe('portionTotal', () => {
   it('returns units × unitPrice as exact integer cents', () => {
@@ -40,5 +40,24 @@ describe('isPortioned', () => {
     expect(
       isPortioned(baseItem({ portions: [{ units: 3, assignedDinerIds: [] }] })),
     ).toBe(true)
+  })
+})
+
+describe('portionedUnits', () => {
+  it('is 0 when portions is undefined', () => {
+    expect(portionedUnits(baseItem())).toBe(0)
+  })
+
+  it('sums the units of all portions', () => {
+    expect(
+      portionedUnits(
+        baseItem({
+          portions: [
+            { units: 1, assignedDinerIds: ['P1'] },
+            { units: 2, assignedDinerIds: [] },
+          ],
+        }),
+      ),
+    ).toBe(3)
   })
 })
