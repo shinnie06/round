@@ -61,4 +61,12 @@ export interface RoundState {
   scannedTotal: Cents | null
 }
 
+/** UNCHANGED. Portions never change what the whole line costs.
+ *  Invariant: Σ(portion.units·unitPrice) === lineTotal. */
 export const lineTotal = (it: Item): Cents => cents(it.qty * it.unitPrice)
+
+/** Exact integer cents for one portion: units × unitPrice. New helper.
+ *  Safe: `cents()` (money.ts:11) throws on non-integers, but `units` is a
+ *  positive integer (portionZod + store clamps) and `unitPrice` is int. */
+export const portionTotal = (unitPrice: Cents, units: number): Cents =>
+  cents(units * unitPrice)
