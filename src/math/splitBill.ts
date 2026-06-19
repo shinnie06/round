@@ -2,7 +2,7 @@ import { addC, cents, type Cents, ZERO } from './money'
 import { applyCharges, type ChargeBreakdown } from './singapore'
 import { distributeProportionally } from './proportional'
 import { distributeResidual } from './residual'
-import { lineTotal, portionTotal, isPortioned, type Diner, type RoundState } from '@/state/types'
+import { lineTotal, portionTotal, isPortioned, type Diner, type Item, type RoundState } from '@/state/types'
 
 /**
  * splitBill — the full engine pipeline, in one pass:
@@ -67,6 +67,9 @@ function allocateEqually(
   participants: string[],
   idx: Map<string, number>,
   food: Cents[],
+  item: Item,
+  linesByDiner: FoodLine[][],
+  portion: FoodLine['portion'],
 ): void {
   if (participants.length === 0) return
   const shares = distributeProportionally(
@@ -76,6 +79,7 @@ function allocateEqually(
   participants.forEach((id, k) => {
     const i = idx.get(id)!
     food[i] = addC(food[i]!, shares[k]!)
+    linesByDiner[i]!.push({ itemId: item.id, name: item.name, food: shares[k]!, portion })
   })
 }
 
@@ -83,6 +87,7 @@ export function splitBill(state: RoundState): BillSplit {
   const { diners, items } = state
   const idx = new Map(diners.map((d, i) => [d.id, i]))
   const food: Cents[] = diners.map(() => ZERO)
+  const linesByDiner: FoodLine[][] = diners.map(() => [])
 
   for (const item of items) {
     if (isPortioned(item)) {
@@ -91,7 +96,12 @@ export function splitBill(state: RoundState): BillSplit {
       // is unchanged — only WHO absorbs WHICH units differs.
       for (const p of item.portions!) {
         const cost = portionTotal(item.unitPrice, p.units)
-        allocateEqually(cost, resolveParticipants(p.assignedDinerIds, diners, idx), idx, food)
+        const participants = resolveParticipants(p.assignedDinerIds, diners, idx)
+        allocateEqually(cost, participants, idx, food, item, linesByDiner, {
+          units: p.units,
+          qty: item.qty,
+          shareOf: participants.length,
+        })
       }
     } else {
       // Un-split path — byte-identical to today.
@@ -100,6 +110,9 @@ export function splitBill(state: RoundState): BillSplit {
         resolveParticipants(item.assignedDinerIds, diners, idx),
         idx,
         food,
+        item,
+        linesByDiner,
+        undefined,
       )
     }
   }
@@ -131,7 +144,7 @@ export function splitBill(state: RoundState): BillSplit {
       service: serviceShares[i]!,
       gst: gstShares[i]!,
       total: adjusted[i]!,
-      lines: [],
+      lines: linesByDiner[i]!,
     })),
     residual,
     residualDinerId: absorbedBy === null ? null : diners[absorbedBy]!.id,

@@ -359,4 +359,24 @@ describe('splitBill — lines decomposition', () => {
       expect(Array.isArray(d.lines)).toBe(true)
     }
   })
+
+  it('un-split item emits one line per participant, portion undefined, summing to food', () => {
+    const state = round({
+      diners: [diner('shin'), diner('mei'), diner('raj')],
+      items: [item('crab', 8800)], // everyone, 8800/3 → [2934,2933,2933]
+      servicePct: 0,
+      gstPct: 0,
+    })
+    const s = splitBill(state)
+    const shin = s.perDiner.find((d) => d.dinerId === 'shin')!
+    expect(shin.lines).toHaveLength(1)
+    expect(shin.lines[0]!.itemId).toBe('crab')
+    expect(shin.lines[0]!.name).toBe('crab')
+    expect(shin.lines[0]!.food).toBe(2934)
+    expect(shin.lines[0]!.portion).toBeUndefined()
+    for (const d of s.perDiner) {
+      const sum = d.lines.reduce((a, l) => a + l.food, 0)
+      expect(sum).toBe(d.food)
+    }
+  })
 })
