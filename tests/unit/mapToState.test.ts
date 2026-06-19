@@ -277,4 +277,16 @@ describe('mapToState — portions', () => {
     // the schema transform did not alter the OCR items at all
     expect(parsed!.items).toEqual(s.items)
   })
+
+  it('a multi-unit evenly-divisible item (qty 3) is emitted un-split, never pre-portioned', () => {
+    const s = mapToState(
+      receipt({ items: [{ name: 'Grilled Chicken Chop', qty: 3, line_total: 30.0 }] }),
+      green,
+    )
+    const item = s.items[0]!
+    expect(item.qty).toBe(3)
+    expect(item.unitPrice).toBe(1000)
+    expect(isPortioned(item)).toBe(false)
+    expect('portions' in item).toBe(false)
+  })
 })
