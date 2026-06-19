@@ -285,4 +285,40 @@ describe('store — portions', () => {
     a().removePortion(item.id, 0)
     expect(round().items[0]!.portions).toBeUndefined()
   })
+
+  it('mergePortions collapses to un-split adopting portions[0] list (lossy)', () => {
+    seed()
+    const item = round().items[0]! // qty 3; diners [shin, mei, raj]
+    const [shin] = round().diners
+    // Build "portion 0 -> [shin]" using only actions defined by this point:
+    // assignOnly (existing item-level) sets the item list to [shin]; splitItem
+    // copies it into the seeded portion; addPortion adds a second [] portion
+    // whose list is discarded on merge (the lossiness).
+    a().assignOnly(item.id, shin!.id) // item.assignedDinerIds -> [shin]
+    a().splitItem(item.id) // portion 0 = {3, [shin]}
+    a().addPortion(item.id) // -> [{2,[shin]},{1,[]}]
+    expect(round().items[0]!.portions![0]!.assignedDinerIds).toEqual([shin!.id]) // precondition
+    a().mergePortions(item.id)
+    expect(round().items[0]!.portions).toBeUndefined()
+    expect(round().items[0]!.assignedDinerIds).toEqual([shin!.id])
+  })
+
+  it('mergePortions is a no-op on an un-split item', () => {
+    seed()
+    const item = round().items[0]!
+    const before = JSON.stringify(round().items[0])
+    a().mergePortions(item.id)
+    expect(JSON.stringify(round().items[0])).toBe(before)
+  })
+
+  it('splitItem then mergePortions yields a byte-identical un-split item (reversibility)', () => {
+    seed()
+    const item = round().items[0]!
+    a().assignOnly(item.id, round().diners[2]!.id) // explicit [raj]
+    const before = JSON.stringify(round().items[0])
+    a().splitItem(item.id)
+    a().mergePortions(item.id)
+    expect(JSON.stringify(round().items[0])).toBe(before)
+    expect('portions' in round().items[0]!).toBe(false)
+  })
 }) // end describe('store — portions')

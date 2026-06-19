@@ -39,6 +39,7 @@ export interface StoreState {
     addPortion: (itemId: string) => void
     setPortionUnits: (itemId: string, portionIndex: number, units: number) => void
     removePortion: (itemId: string, portionIndex: number) => void
+    mergePortions: (itemId: string) => void
     toggleAssignment: (itemId: string, dinerId: string) => void
     /** One tap: this item belongs to exactly this diner. */
     assignOnly: (itemId: string, dinerId: string) => void
@@ -166,6 +167,14 @@ export const useStore = create<StoreState>()(
           const dest = portionIndex > 0 ? portionIndex - 1 : 1
           ps[dest]!.units += ps[portionIndex]!.units
           ps.splice(portionIndex, 1)
+        }),
+
+      mergePortions: (itemId) =>
+        set((s) => {
+          const it = s.round.items.find((i) => i.id === itemId)
+          if (!it?.portions) return
+          it.assignedDinerIds = [...it.portions[0]!.assignedDinerIds]
+          delete it.portions
         }),
 
       /**
