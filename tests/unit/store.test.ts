@@ -363,4 +363,39 @@ describe('store — portions', () => {
     a().togglePortionAssignment(item.id, 9, round().diners[0]!.id) // bad index
     expect(round().items[0]!.portions![0]!.assignedDinerIds).toEqual([])
   })
+
+  it('assignPortionOnly assigns exactly one diner', () => {
+    seed()
+    const item = round().items[0]!
+    a().splitItem(item.id)
+    const raj = round().diners[2]!.id
+    a().assignPortionOnly(item.id, 0, raj)
+    expect(round().items[0]!.portions![0]!.assignedDinerIds).toEqual([raj])
+  })
+
+  it('assignPortionOnly collapses to [] for a single-diner round', () => {
+    a().addDiner('Solo')
+    a().addItem({ name: 'Tea', qty: 2, unitPrice: cents(300) })
+    const item = round().items[0]!
+    a().splitItem(item.id)
+    a().assignPortionOnly(item.id, 0, round().diners[0]!.id)
+    expect(round().items[0]!.portions![0]!.assignedDinerIds).toEqual([])
+  })
+
+  it('assignPortionOnly is a no-op for an unknown diner id', () => {
+    seed()
+    const item = round().items[0]!
+    a().splitItem(item.id)
+    a().assignPortionOnly(item.id, 0, 'ghost')
+    expect(round().items[0]!.portions![0]!.assignedDinerIds).toEqual([])
+  })
+
+  it('assignPortionEveryone restores the [] sentinel', () => {
+    seed()
+    const item = round().items[0]!
+    a().splitItem(item.id)
+    a().assignPortionOnly(item.id, 0, round().diners[2]!.id) // -> [raj]
+    a().assignPortionEveryone(item.id, 0)
+    expect(round().items[0]!.portions![0]!.assignedDinerIds).toEqual([])
+  })
 }) // end describe('store — portions')
