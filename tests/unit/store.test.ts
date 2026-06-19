@@ -252,4 +252,37 @@ describe('store — portions', () => {
       { units: 1, assignedDinerIds: [] },
     ])
   })
+
+  it('removePortion folds units into the previous portion', () => {
+    seed()
+    const item = round().items[0]! // qty 3
+    a().splitItem(item.id)
+    a().addPortion(item.id) // [{2,[]},{1,[]}]
+    a().removePortion(item.id, 1) // remove last, fold into prev
+    expect(round().items[0]!.portions).toEqual([{ units: 3, assignedDinerIds: [] }])
+  })
+
+  it('removePortion of the first portion folds units into the NEXT', () => {
+    seed()
+    const item = round().items[0]! // qty 3
+    a().splitItem(item.id)
+    a().addPortion(item.id) // [{2,[]},{1,[]}]
+    a().removePortion(item.id, 0) // remove first, fold into next (dest=1)
+    expect(round().items[0]!.portions).toEqual([{ units: 3, assignedDinerIds: [] }])
+  })
+
+  it('removePortion of a lone portion is a no-op (use mergePortions to collapse)', () => {
+    seed()
+    const item = round().items[0]! // qty 3
+    a().splitItem(item.id) // single portion {3,[]}
+    a().removePortion(item.id, 0)
+    expect(round().items[0]!.portions).toEqual([{ units: 3, assignedDinerIds: [] }])
+  })
+
+  it('removePortion is a no-op on an un-split item (length < 2 guard)', () => {
+    seed()
+    const item = round().items[0]!
+    a().removePortion(item.id, 0)
+    expect(round().items[0]!.portions).toBeUndefined()
+  })
 }) // end describe('store — portions')

@@ -38,6 +38,7 @@ export interface StoreState {
     splitItem: (itemId: string) => void
     addPortion: (itemId: string) => void
     setPortionUnits: (itemId: string, portionIndex: number, units: number) => void
+    removePortion: (itemId: string, portionIndex: number) => void
     toggleAssignment: (itemId: string, dinerId: string) => void
     /** One tap: this item belongs to exactly this diner. */
     assignOnly: (itemId: string, dinerId: string) => void
@@ -155,6 +156,16 @@ export const useStore = create<StoreState>()(
           if (next === cur) return
           ps[nbr]!.units += cur - next
           ps[portionIndex]!.units = next
+        }),
+
+      removePortion: (itemId, portionIndex) =>
+        set((s) => {
+          const it = s.round.items.find((i) => i.id === itemId)
+          const ps = it?.portions
+          if (!ps || ps.length < 2 || portionIndex < 0 || portionIndex >= ps.length) return
+          const dest = portionIndex > 0 ? portionIndex - 1 : 1
+          ps[dest]!.units += ps[portionIndex]!.units
+          ps.splice(portionIndex, 1)
         }),
 
       /**
