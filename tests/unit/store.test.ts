@@ -1,6 +1,7 @@
 import { beforeEach, describe, it, expect } from 'vitest'
 import { cents } from '@/math/money'
 import { emptyRound, useStore } from '@/state/store'
+import { splitBill } from '@/math/splitBill'
 
 const a = () => useStore.getState().actions
 const round = () => useStore.getState().round
@@ -397,5 +398,51 @@ describe('store — portions', () => {
     a().assignPortionOnly(item.id, 0, round().diners[2]!.id) // -> [raj]
     a().assignPortionEveryone(item.id, 0)
     expect(round().items[0]!.portions![0]!.assignedDinerIds).toEqual([])
+  })
+
+  it('removeDiner strips the id from every explicit portion list', () => {
+    seed()
+    const item = round().items[0]! // qty 3
+    a().splitItem(item.id)
+    a().addPortion(item.id) // [{2,[]},{1,[]}]
+    const [shin, mei, raj] = round().diners
+    a().togglePortionAssignment(item.id, 0, raj!.id) // portion 0 -> [shin, mei]
+    a().togglePortionAssignment(item.id, 1, raj!.id) // portion 1 -> [shin, mei]
+    a().removeDiner(shin!.id)
+    expect(round().items[0]!.portions![0]!.assignedDinerIds).toEqual([mei!.id])
+    expect(round().items[0]!.portions![1]!.assignedDinerIds).toEqual([mei!.id])
+  })
+
+  it('removeDiner emptying a portion list resets it to [] and re-bills survivors', () => {
+    seed()
+    const item = round().items[0]! // qty 3 @ 900 => 2700 line
+    a().splitItem(item.id) // single portion {3,[]}
+    const [shin, mei, raj] = round().diners
+    a().assignPortionOnly(item.id, 0, shin!.id) // portion 0 -> [shin] only
+    a().removeDiner(shin!.id) // empties the explicit list -> []
+    expect(round().items[0]!.portions![0]!.assignedDinerIds).toEqual([])
+    // OUTCOME (not array shape): [] = everyone => the 2700 line re-bills the
+    // two survivors (mei, raj) equally: 1350 each, nobody dropped.
+    const split = splitBill(round())
+    const meiSplit = split.perDiner.find((p) => p.dinerId === mei!.id)!
+    const rajSplit = split.perDiner.find((p) => p.dinerId === raj!.id)!
+    expect(meiSplit.food).toBe(cents(1350))
+    expect(rajSplit.food).toBe(cents(1350))
+  })
+
+  it('removeDiner leaves an n-1 explicit portion list NOT collapsed to []', () => {
+    seed()
+    const item = round().items[0]! // qty 3
+    a().splitItem(item.id) // single portion {3,[]}
+    const [shin, mei, raj] = round().diners
+    a().togglePortionAssignment(item.id, 0, raj!.id) // -> [shin, mei] (n-1 explicit)
+    a().removeDiner(shin!.id) // -> [mei]; must stay explicit, NOT collapse to []
+    expect(round().items[0]!.portions![0]!.assignedDinerIds).toEqual([mei!.id])
+  })
+
+  it('removeDiner is a no-op on portions for an un-split round (tripwire byte-identical)', () => {
+    seed()
+    a().removeDiner(round().diners[0]!.id)
+    expect(round().items[0]!.portions).toBeUndefined()
   })
 }) // end describe('store — portions')

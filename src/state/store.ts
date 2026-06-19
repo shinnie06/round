@@ -105,9 +105,13 @@ export const useStore = create<StoreState>()(
         set((s) => {
           s.round.diners = s.round.diners.filter((d) => d.id !== id)
           for (const item of s.round.items) {
-            if (item.assignedDinerIds.length === 0) continue
-            item.assignedDinerIds = item.assignedDinerIds.filter((a) => a !== id)
-            // Nobody left on the item → back to "everyone".
+            if (item.assignedDinerIds.length !== 0)
+              item.assignedDinerIds = item.assignedDinerIds.filter((a) => a !== id)
+            if (!item.portions) continue
+            for (const p of item.portions) {
+              if (p.assignedDinerIds.length === 0) continue
+              p.assignedDinerIds = p.assignedDinerIds.filter((a) => a !== id)
+            }
           }
         }),
 
