@@ -2,8 +2,9 @@
 import { Plus } from 'lucide-react'
 import { useStore } from '@/state/store'
 import { DINER_COLORS } from '@/state/colors'
-import { lineTotal, type Item } from '@/state/types'
+import { isPortioned, lineTotal, portionTotal, type Item, type Portion } from '@/state/types'
 import { Money } from '@/components/Money'
+import { portionRowVM, portionWho } from './portionView'
 
 /**
  * The item rows of the receipt. Each row is one button (opens the
@@ -29,11 +30,32 @@ function AvatarDots({ item }: { item: Item }) {
   )
 }
 
+/** Avatar dots for ONE portion's resolved members — same look as
+ *  AvatarDots, computed by the tested portionRowVM (sentinel/explicit,
+ *  +N overflow, cap 5). */
+function PortionDots({ portion }: { portion: Portion }) {
+  const diners = useStore((s) => s.round.diners)
+  const vm = portionRowVM(portion, diners)
+  return (
+    <span className="ml-2 inline-flex shrink-0 -space-x-1" aria-hidden>
+      {vm.dots.map((d) => (
+        <span
+          key={d.id}
+          className="h-2.5 w-2.5 rounded-full ring-1 ring-paper"
+          style={{ background: d.color }}
+        />
+      ))}
+      {vm.overflow > 0 && <span className="pl-1.5 text-[10px] text-paper-faint">+{vm.overflow}</span>}
+    </span>
+  )
+}
+
 export function ItemsSection({ onOpenItem, onAddItem }: {
   onOpenItem: (id: string) => void
   onAddItem: () => void
 }) {
   const items = useStore((s) => s.round.items)
+  const diners = useStore((s) => s.round.diners)
   const readOnly = useStore((s) => s.readOnly)
 
   return (
@@ -52,8 +74,25 @@ export function ItemsSection({ onOpenItem, onAddItem }: {
               </span>
               <span className="leader" aria-hidden />
               <Money cents={lineTotal(it)} />
-              <AvatarDots item={it} />
+              {!isPortioned(it) && <AvatarDots item={it} />}
             </button>
+            {isPortioned(it) && (
+              <ul className="mb-1 flex flex-col" aria-label={`Parts of ${it.name}`}>
+                {it.portions!.map((p, idx) => (
+                  <li
+                    key={idx}
+                    className="flex items-baseline pl-6 font-mono text-receipt text-paper-faint"
+                  >
+                    <span className="truncate">
+                      {p.units === 1 ? '1 unit' : `${p.units} units`} — {portionWho(p, diners)}
+                    </span>
+                    <span className="leader" aria-hidden />
+                    <Money cents={portionTotal(it.unitPrice, p.units)} />
+                    <PortionDots portion={p} />
+                  </li>
+                ))}
+              </ul>
+            )}
           </li>
         ))}
         {items.length === 0 && (
