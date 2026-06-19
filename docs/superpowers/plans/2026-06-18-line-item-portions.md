@@ -2245,7 +2245,9 @@ All new tests go in ONE new `describe('store — portions', …)` block appended
 
 ---
 
-### Task 24: Scaffold the `store — portions` describe block
+### Task 24: Scaffold the `store — portions` describe block — SUPERSEDED (skipped)
+
+> NOTE: This standalone scaffold is intentionally skipped during execution. vitest 4 hard-errors on an empty `describe` ("No test found in suite"), and `noUnusedLocals` rejects importing `splitBill` before it is used. The `store — portions` describe block is instead created by Task 25 (with its first real test), and the `splitBill` import is added in Task 32 where it is first used.
 
 **Files:**
 - Modify: `tests/unit/store.test.ts` (append after line 129, the end of the last `describe`)
@@ -2281,8 +2283,9 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"`
 - Modify: `src/state/store.ts` (action `splitItem` in the `actions` object; signature in `StoreState.actions` at `store.ts:27-48`)
 - Test: `tests/unit/store.test.ts`
 
-- [ ] Step 1: Add the failing tests inside the `store — portions` describe block:
+- [ ] Step 1: Create the `store — portions` describe block at the END of `tests/unit/store.test.ts` (it does not exist yet — Task 24's standalone scaffold is skipped). Add the failing tests inside it, using the existing top-of-file `seed()`, `round()`, `a()`, `cents()` helpers. Do NOT import `splitBill` here — it is added in Task 32 (its first use), and `noUnusedLocals` would fail typecheck on an unused import:
   ```ts
+  describe('store — portions', () => {
   it('splitItem seeds one full-allocation portion copying assignedDinerIds', () => {
     seed()
     const item = round().items[0]!
@@ -2314,6 +2317,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"`
     a().splitItem(item.id) // second call must not re-seed
     expect(round().items[0]!.portions).toEqual([{ units: 3, assignedDinerIds: [] }])
   })
+  }) // end describe('store — portions')
   ```
 - [ ] Step 2: Add the `splitItem` signature to `StoreState.actions`. In `src/state/store.ts`, immediately after the `removeItem` signature line (`store.ts:37` `removeItem: (id: string) => void`), add:
   ```ts
@@ -2823,7 +2827,7 @@ Per spec §4, §10 and the risk register: the existing item-level loop (`store.t
 - Test: `tests/unit/store.test.ts`
 
 - [ ] Step 1: First confirm the existing item-level tripwire still passes BEFORE any change (it must stay byte-identical): `npx vitest run tests/unit/store.test.ts -t "removeDiner strips explicit assignments"`. Expected: `1 passed`.
-- [ ] Step 2: Add the failing tests for the portion-level behaviour. The outcome tests build a 2-portion item, remove a diner, and assert via `splitBill`:
+- [ ] Step 2: This is the first store test to use `splitBill`, so add its import now — in `tests/unit/store.test.ts`, immediately after the existing `import { emptyRound, useStore } from '@/state/store'` line, add `import { splitBill } from '@/math/splitBill'`. Then add the failing tests for the portion-level behaviour. The outcome tests build a 2-portion item, remove a diner, and assert via `splitBill`:
   ```ts
   it('removeDiner strips the id from every explicit portion list', () => {
     seed()
