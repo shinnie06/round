@@ -2932,15 +2932,17 @@ Per spec §10 ("Diner lifecycle × portions") and §11: `addDiner` is untouched,
     a().splitItem(item.id) // {3, []}
     a().addPortion(item.id) // [{2,[]},{1,[]}]
     const [shin, mei, raj] = round().diners
-    // portion 0 explicit [shin,mei,raj]; portion 1 stays [] (everyone)
-    a().togglePortionAssignment(item.id, 0, shin!.id) // [mei,raj]
-    a().togglePortionAssignment(item.id, 0, shin!.id) // re-add -> [shin,mei,raj] explicit
-    a().assignPortionEveryone(item.id, 1) // portion 1 = [] sentinel
+    // portion 0 explicit [shin,mei] (toggle raj OFF — a PROPER subset that stays
+    // explicit; selecting ALL current diners collapses back to the [] sentinel,
+    // so an explicit list that must exclude a future diner has to omit at least
+    // one current diner). portion 1 stays [] (everyone).
+    a().togglePortionAssignment(item.id, 0, raj!.id) // [] -> [shin,mei]
+    a().assignPortionEveryone(item.id, 1) // portion 1 = [] sentinel (already [])
     // Now add M LATE.
     a().addDiner('M')
     const m = round().diners[3]!
     // addDiner must not have mutated any portion list.
-    expect(round().items[0]!.portions![0]!.assignedDinerIds).toEqual([shin!.id, mei!.id, raj!.id])
+    expect(round().items[0]!.portions![0]!.assignedDinerIds).toEqual([shin!.id, mei!.id])
     expect(round().items[0]!.portions![1]!.assignedDinerIds).toEqual([])
     // OUTCOME: portion 1 (1 unit @ 900 = 900) splits across all 4 incl. M;
     // portion 0 (2 units @ 900 = 1800) excludes M.
