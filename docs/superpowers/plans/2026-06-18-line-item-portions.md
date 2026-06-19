@@ -2595,18 +2595,19 @@ Per spec §4: set `it.assignedDinerIds = [...it.portions[0].assignedDinerIds]` (
 - Modify: `src/state/store.ts` (action `mergePortions`; signature in `StoreState.actions`)
 - Test: `tests/unit/store.test.ts`
 
-- [ ] Step 1: Add the failing tests, including the reversibility (byte-identical serialization) test from spec §11 / invariant 7. NOTE: the lossy-adoption test builds its "portion 0 → [shin]" fixture using ONLY actions defined by this point (`splitItem`, `addPortion`, `togglePortionAssignment`) — it must NOT call `assignPortionOnly`, which is defined in a later task. Toggling mei then raj off portion 0 (which starts as the `[]` everyone sentinel) materializes the n−1 list down to exactly `[shin]`:
+- [ ] Step 1: Add the failing tests, including the reversibility (byte-identical serialization) test from spec §11 / invariant 7. NOTE: the lossy-adoption test builds its "portion 0 → [shin]" fixture using ONLY actions defined by this point — the EXISTING item-level `assignOnly` (pre-feature) plus `splitItem` and `addPortion`. It must NOT call any per-portion assignment action (`togglePortionAssignment`/`assignPortionOnly`), which are defined in later tasks and would also break typecheck (TS2551). `assignOnly` sets the item-level list to `[shin]`; `splitItem` copies it into the seeded portion; `addPortion` adds a second `[]` (everyone) portion whose list is discarded on merge (the lossiness):
   ```ts
   it('mergePortions collapses to un-split adopting portions[0] list (lossy)', () => {
     seed()
     const item = round().items[0]! // qty 3; diners [shin, mei, raj]
-    a().splitItem(item.id)
-    a().addPortion(item.id) // [{2,[]},{1,[]}]
-    const [shin, mei, raj] = round().diners
-    // Build "portion 0 -> [shin]" using only already-defined actions:
-    // portion 0 starts [] (everyone); toggle mei then raj off -> [shin].
-    a().togglePortionAssignment(item.id, 0, mei!.id) // -> [shin, raj]
-    a().togglePortionAssignment(item.id, 0, raj!.id) // -> [shin]
+    const [shin] = round().diners
+    // Build "portion 0 -> [shin]" using only actions defined by this point:
+    // assignOnly (existing item-level) sets the item list to [shin]; splitItem
+    // copies it into the seeded portion; addPortion adds a second [] portion
+    // whose list is discarded on merge (the lossiness).
+    a().assignOnly(item.id, shin!.id) // item.assignedDinerIds -> [shin]
+    a().splitItem(item.id) // portion 0 = {3, [shin]}
+    a().addPortion(item.id) // -> [{2,[shin]},{1,[]}]
     expect(round().items[0]!.portions![0]!.assignedDinerIds).toEqual([shin!.id]) // precondition
     a().mergePortions(item.id)
     expect(round().items[0]!.portions).toBeUndefined()
@@ -2689,12 +2690,14 @@ Per spec §4: a per-portion mirror of the item-level toggle (`store.ts:128-140`)
   it('togglePortionAssignment refuses to empty a portion (>=1 rule)', () => {
     seed()
     const item = round().items[0]!
-    a().splitItem(item.id)
-    const [shin, mei, raj] = round().diners
-    a().assignPortionOnly(item.id, 0, shin!.id) // portion 0 -> [shin]
+    const [shin] = round().diners
+    // Single-diner portion [shin] via existing item-level assignOnly + splitItem
+    // (no per-portion action — assignPortionOnly is a later task and would also
+    // break typecheck).
+    a().assignOnly(item.id, shin!.id) // item.assignedDinerIds -> [shin]
+    a().splitItem(item.id) // portion 0 = {3, [shin]}
     a().togglePortionAssignment(item.id, 0, shin!.id) // would leave nobody -> refused
     expect(round().items[0]!.portions![0]!.assignedDinerIds).toEqual([shin!.id])
-    expect(mei && raj).toBeTruthy() // (destructure used)
   })
 
   it('togglePortionAssignment is a no-op on an un-split item / bad index', () => {
@@ -2711,7 +2714,7 @@ Per spec §4: a per-portion mirror of the item-level toggle (`store.ts:128-140`)
   ```ts
     togglePortionAssignment: (itemId: string, portionIndex: number, dinerId: string) => void
   ```
-- [ ] Step 3: Run the tests, watch them FAIL: `npx vitest run tests/unit/store.test.ts -t "togglePortionAssignment off [] materializes the explicit n-1 list"`. Expected failure: `TypeError: useStore.getState().actions.togglePortionAssignment is not a function`. (Note: the `refuses to empty` test references `assignPortionOnly`, defined in the next task — that one specific test will error on `assignPortionOnly is not a function` until that task lands; run THIS task by the three named tests that do not need `assignPortionOnly`, per Step 5.)
+- [ ] Step 3: Run the tests, watch them FAIL: `npx vitest run tests/unit/store.test.ts -t "togglePortionAssignment off [] materializes the explicit n-1 list"`. Expected failure: `TypeError: useStore.getState().actions.togglePortionAssignment is not a function`.
 - [ ] Step 4: Implement `togglePortionAssignment`. In `src/state/store.ts`, immediately after the `mergePortions` action's closing `}),`, add:
   ```ts
 
@@ -2730,7 +2733,7 @@ Per spec §4: a per-portion mirror of the item-level toggle (`store.ts:128-140`)
             p.assignedDinerIds = coversEveryone ? [] : next
           }),
   ```
-- [ ] Step 5: Run the three tests that do NOT depend on `assignPortionOnly`, watch them PASS: `npx vitest run tests/unit/store.test.ts -t "togglePortionAssignment off \[\] materializes the explicit n-1 list"`, then `-t "togglePortionAssignment re-adding the last missing diner collapses to \[\]"`, then `-t "togglePortionAssignment is a no-op on an un-split item / bad index"`. Expected: each `1 passed`. The `refuses to empty` test will currently error with `assignPortionOnly is not a function` — that is expected and resolved in the next task. Do NOT delete it.
+- [ ] Step 5: Run the togglePortionAssignment tests, watch them PASS: `npx vitest run tests/unit/store.test.ts -t "togglePortionAssignment off \[\] materializes the explicit n-1 list"`, then `-t "togglePortionAssignment re-adding the last missing diner collapses to \[\]"`, then `-t "togglePortionAssignment is a no-op on an un-split item / bad index"`. Expected: each `1 passed`. Then run the whole file to confirm the fourth (`refuses to empty`) also passes now: `npx vitest run tests/unit/store.test.ts`. All four togglePortionAssignment tests are self-contained against actions defined by this point — no later-task dependency.
 - [ ] Step 6: Typecheck: `npm run typecheck`. Expected: exit 0.
 - [ ] Step 7: Commit. `git add src/state/store.ts tests/unit/store.test.ts && git commit -m "feat(store): togglePortionAssignment, sentinel-aware per-portion toggle
 
