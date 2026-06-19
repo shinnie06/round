@@ -289,4 +289,28 @@ describe('mapToState — portions', () => {
     expect(isPortioned(item)).toBe(false)
     expect('portions' in item).toBe(false)
   })
+
+  it('emits a valid un-split Item shape that splitItem can later portion (qty>=2, no portions)', () => {
+    // splitItem (Phase 3) no-ops unless qty >= 2 and portions is absent, then
+    // copies assignedDinerIds into portion 0. Assert those preconditions on the
+    // raw OCR item WITHOUT importing the Phase-3 action (Phase 6 depends only on
+    // Phase 1).
+    const s = mapToState(
+      receipt({ items: [{ name: 'One36 Pork Adobo w/ Egg', qty: 3, line_total: 42.0 }] }),
+      green,
+    )
+    const item = s.items[0]!
+    expect(item.qty).toBeGreaterThanOrEqual(2)
+    expect('portions' in item).toBe(false)
+    expect(Array.isArray(item.assignedDinerIds)).toBe(true)
+    // simulate splitItem's seed (one full-allocation portion copying assignedDinerIds)
+    // to prove the shape supports it cleanly, with units conserving to qty.
+    const seeded = {
+      ...item,
+      portions: [{ units: item.qty, assignedDinerIds: [...item.assignedDinerIds] }],
+    }
+    const sumUnits = seeded.portions.reduce((a, p) => a + p.units, 0)
+    expect(sumUnits).toBe(item.qty)
+    expect(isPortioned(seeded)).toBe(true)
+  })
 })
