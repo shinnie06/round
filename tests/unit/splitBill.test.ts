@@ -379,4 +379,61 @@ describe('splitBill — lines decomposition', () => {
       expect(sum).toBe(d.food)
     }
   })
+
+  it('portioned item emits a line per (portion, participant) carrying units/qty/shareOf', () => {
+    const state = round({
+      // 3× gyoza @ 1500: 1u solo to shin, 2u shared shin+mei (raj absent).
+      // unitPrice·units: solo 1500→shin; shared 3000/2 → [1500,1500].
+      diners: [diner('shin'), diner('mei'), diner('raj')],
+      items: [
+        {
+          id: 'gyoza',
+          name: 'Gyoza',
+          qty: 3,
+          unitPrice: cents(1500),
+          assignedDinerIds: [],
+          portions: [
+            { units: 1, assignedDinerIds: ['shin'] }, // solo → shareOf 1
+            { units: 2, assignedDinerIds: ['shin', 'mei'] }, // shared → shareOf 2
+          ],
+        },
+      ],
+      servicePct: 0,
+      gstPct: 0,
+    })
+    const s = splitBill(state)
+
+    // shin appears in BOTH portions → two lines for the same itemId.
+    const shin = s.perDiner.find((d) => d.dinerId === 'shin')!
+    const shinGyoza = shin.lines.filter((l) => l.itemId === 'gyoza')
+    expect(shinGyoza).toHaveLength(2)
+    const solo = shinGyoza.find((l) => l.portion!.shareOf === 1)!
+    expect(solo.name).toBe('Gyoza')
+    expect(solo.food).toBe(1500)
+    expect(solo.portion).toEqual({ units: 1, qty: 3, shareOf: 1 })
+    const shared = shinGyoza.find((l) => l.portion!.shareOf === 2)!
+    expect(shared.name).toBe('Gyoza')
+    expect(shared.food).toBe(1500)
+    expect(shared.portion).toEqual({ units: 2, qty: 3, shareOf: 2 })
+
+    // mei is only in the shared portion → exactly one line, shareOf 2.
+    const mei = s.perDiner.find((d) => d.dinerId === 'mei')!
+    const meiGyoza = mei.lines.filter((l) => l.itemId === 'gyoza')
+    expect(meiGyoza).toHaveLength(1)
+    expect(meiGyoza[0]!.itemId).toBe('gyoza')
+    expect(meiGyoza[0]!.name).toBe('Gyoza')
+    expect(meiGyoza[0]!.food).toBe(1500)
+    expect(meiGyoza[0]!.portion).toEqual({ units: 2, qty: 3, shareOf: 2 })
+
+    // raj is in no portion → NO line for gyoza, zero food.
+    const raj = s.perDiner.find((d) => d.dinerId === 'raj')!
+    expect(raj.lines.filter((l) => l.itemId === 'gyoza')).toHaveLength(0)
+    expect(raj.food).toBe(0)
+
+    // Strict decomposition still holds on the portioned path.
+    for (const d of s.perDiner) {
+      const sum = d.lines.reduce((a, l) => a + l.food, 0)
+      expect(sum).toBe(d.food)
+    }
+  })
 })
