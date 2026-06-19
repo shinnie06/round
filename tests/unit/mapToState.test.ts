@@ -204,3 +204,21 @@ describe('mapToState — rounding + GST default regression', () => {
     expect(Math.round(s.gstPct * 100)).toBe(9)
   })
 })
+
+describe('mapToState — portions', () => {
+  it('never emits a portions key — portions undefined and not an own-property', () => {
+    const s = mapToState(
+      receipt({
+        items: [
+          { name: 'Pan-Seared Snapper', qty: 5, line_total: 90.0 },
+          { name: 'One36 Pork Adobo w/ Egg', qty: 3, line_total: 42.0 },
+        ],
+      }),
+      green,
+    )
+    for (const item of s.items) {
+      expect(item.portions).toBeUndefined()
+      expect('portions' in item).toBe(false)
+    }
+  })
+})
