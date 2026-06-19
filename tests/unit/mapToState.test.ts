@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { mapToState } from '@/features/ocr/mapToState'
 import { reconcile } from '@/features/ocr/reconcile'
-import { lineTotal } from '@/state/types'
+import { lineTotal, isPortioned } from '@/state/types'
 import { cents } from '@/math/money'
 import type { CleanReceipt, Verdict } from '@/features/ocr/types'
 
@@ -220,5 +220,19 @@ describe('mapToState — portions', () => {
       expect(item.portions).toBeUndefined()
       expect('portions' in item).toBe(false)
     }
+  })
+
+  it('isPortioned() is false for every OCR item', () => {
+    const s = mapToState(
+      receipt({
+        items: [
+          { name: 'Pan-Seared Snapper', qty: 5, line_total: 90.0 },
+          { name: 'One36 Pork Adobo w/ Egg', qty: 3, line_total: 42.0 },
+          { name: 'Grilled Chicken Chop', qty: 3, line_total: 30.0 },
+        ],
+      }),
+      green,
+    )
+    expect(s.items.map(isPortioned)).toEqual([false, false, false])
   })
 })
