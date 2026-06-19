@@ -498,4 +498,17 @@ describe('store — portions', () => {
     expect(round().items[0]!.name).toBe('Lager')
     expect(round().items[0]!.unitPrice).toBe(cents(1000))
   })
+
+  it('item-level assignment is dormant while portioned (split output unchanged)', () => {
+    seed()
+    const item = round().items[0]! // qty 3 @ 900
+    a().splitItem(item.id) // portion {3, []} = everyone
+    const before = JSON.stringify(splitBill(round()).perDiner)
+    const [shin] = round().diners
+    a().toggleAssignment(item.id, shin!.id) // mutates dormant assignedDinerIds
+    a().assignOnly(item.id, shin!.id) // mutates dormant assignedDinerIds
+    a().assignEveryone(item.id) // mutates dormant assignedDinerIds
+    const after = JSON.stringify(splitBill(round()).perDiner)
+    expect(after).toBe(before)
+  })
 }) // end describe('store — portions')
