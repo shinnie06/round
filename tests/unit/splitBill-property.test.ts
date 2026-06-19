@@ -23,19 +23,46 @@ describe('splitBill property: exact-sum invariant', () => {
       }))
 
       const items: Item[] = Array.from({ length: randInt(0, 12) }, (_, j) => {
-        // 40% everyone-sentinel, else a random non-empty subset
-        let assigned: string[] = []
-        if (rand() >= 0.4) {
-          assigned = diners.filter(() => rand() < 0.5).map((d) => d.id)
-          if (assigned.length === 0) assigned = [diners[randInt(0, dinerCount - 1)]!.id]
+        const qty = randInt(1, 5)
+        const unitPrice = cents(randInt(1, 20_000))
+
+        // ── pick the item-level participant list (today's logic) ──
+        const pickAssigned = (): string[] => {
+          let assigned: string[] = []
+          if (rand() >= 0.4) {
+            assigned = diners.filter(() => rand() < 0.5).map((d) => d.id)
+            if (assigned.length === 0) assigned = [diners[randInt(0, dinerCount - 1)]!.id]
+          }
+          return assigned
         }
-        return {
+
+        const base: Item = {
           id: `i${j}`,
           name: `Item ${j}`,
-          qty: randInt(1, 5),
-          unitPrice: cents(randInt(1, 20_000)),
-          assignedDinerIds: assigned,
+          qty,
+          unitPrice,
+          assignedDinerIds: pickAssigned(),
         }
+
+        // ~30% of items become portioned, but ONLY via cut-points so
+        // Σ(portion.units) === qty BY CONSTRUCTION (exercises the engine,
+        // not the schema downgrade). Each portion gets its own subset/sentinel.
+        if (qty >= 2 && rand() < 0.3) {
+          const k = randInt(1, qty) // 1..qty contiguous portions
+          const cuts = new Set<number>()
+          while (cuts.size < k - 1) cuts.add(randInt(1, qty - 1))
+          const bounds = [0, ...[...cuts].sort((a, b) => a - b), qty]
+          const portions = []
+          for (let b = 1; b < bounds.length; b++) {
+            portions.push({
+              units: bounds[b]! - bounds[b - 1]!,
+              assignedDinerIds: pickAssigned(),
+            })
+          }
+          base.portions = portions
+        }
+
+        return base
       })
 
       const state: RoundState = {
@@ -56,6 +83,24 @@ describe('splitBill property: exact-sum invariant', () => {
       for (const d of s.perDiner) {
         expect(Number.isNaN(d.total), `NaN in case ${i}`).toBe(false)
       }
+
+      // Per-line cost conservation: recompute subtotal from the items using
+      // ONLY non-orphaned slices, and assert it matches the engine's subtotal.
+      // Catches a portionTotal bug that happens to still globally balance.
+      const known = new Set(diners.map((d) => d.id))
+      const resolves = (assigned: string[]) =>
+        assigned.length === 0 || assigned.some((id) => known.has(id))
+      let expectedSubtotal = 0
+      for (const it of items) {
+        if (Array.isArray(it.portions) && it.portions.length > 0) {
+          for (const p of it.portions) {
+            if (resolves(p.assignedDinerIds)) expectedSubtotal += p.units * it.unitPrice
+          }
+        } else if (resolves(it.assignedDinerIds)) {
+          expectedSubtotal += it.qty * it.unitPrice
+        }
+      }
+      expect(s.breakdown.subtotal, `subtotal case ${i}`).toBe(expectedSubtotal)
     }
   })
 })
