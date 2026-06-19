@@ -33,6 +33,9 @@ describe('mapToState', () => {
     expect(s.items.map(lineTotal)).toEqual([8800, 2700])
     expect(s.items[1]!.qty).toBe(3)
     expect(s.items[1]!.unitPrice).toBe(900)
+    // canonical-shape canary: OCR items are never portioned
+    expect(s.items.every((it) => !('portions' in it))).toBe(true)
+    expect(s.items.map(isPortioned)).toEqual([false, false])
   })
 
   it('collapses to qty 1 when the line total does not divide evenly', () => {
@@ -76,11 +79,16 @@ describe('mapToState', () => {
 
   it('carries venue, discount, verdict; diners start empty', () => {
     const v: Verdict = { status: 'amber', deltaCents: cents(15) }
-    const s = mapToState(receipt({ discount: 5.0, venue: 'Lau Pa Sat' }), v)
+    const s = mapToState(
+      receipt({ discount: 5.0, venue: 'Lau Pa Sat', items: [{ name: 'Set', qty: 1, line_total: 20.0 }] }),
+      v,
+    )
     expect(s.venue).toBe('Lau Pa Sat')
     expect(s.discount).toBe(500)
     expect(s.scan).toEqual(v)
     expect(s.diners).toEqual([])
+    // canonical-shape canary: OCR items are never portioned
+    expect(s.items.every((it) => !('portions' in it) && !isPortioned(it))).toBe(true)
   })
 })
 
