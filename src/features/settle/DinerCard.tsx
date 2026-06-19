@@ -7,6 +7,7 @@ import { DINER_COLORS } from '@/state/colors'
 import type { Diner } from '@/state/types'
 import { Money } from '@/components/Money'
 import { cn } from '@/lib/cn'
+import { dinerCardRows } from './dinerCardRows'
 
 /**
  * One diner's settle card. Collapsed: name + what they owe. Expanded:
@@ -26,12 +27,7 @@ export function DinerCard({
   expanded: boolean
   onToggle: () => void
 }) {
-  const rows: { label: string; amount: number }[] = [
-    { label: 'Food & drink', amount: split.food },
-    ...(split.discount !== 0 ? [{ label: 'Discount share', amount: split.discount }] : []),
-    ...(split.service !== 0 ? [{ label: 'Service charge', amount: split.service }] : []),
-    ...(split.gst !== 0 ? [{ label: 'GST', amount: split.gst }] : []),
-  ]
+  const rows = dinerCardRows(split)
 
   return (
     <div className="overflow-hidden rounded-2xl border border-line bg-ink-2">
