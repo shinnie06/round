@@ -96,4 +96,13 @@ describe('buildShareText', () => {
   it('is deterministic (same input → identical output)', () => {
     expect(buildShareText(worked, splitBill(worked))).toBe(buildShareText(worked, splitBill(worked)))
   })
+
+  it('share text footer matches the SettleSheet grand total for a portioned round', () => {
+    const split = splitBill(worked)
+    const text = buildShareText(worked, split)
+    // SettleSheet renders <Money cents={split.breakdown.grandTotal}/> in its footer;
+    // buildShareText must end on the same number, formatted.
+    expect(text.trimEnd().endsWith(`Everyone together — $194.24`)).toBe(true)
+    expect(split.breakdown.grandTotal).toBe(19424)
+  })
 })

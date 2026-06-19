@@ -65,3 +65,48 @@ describe('share hash — legacy payloads without rounding', () => {
     expect(decoded!.rounding).toBe(0)
   })
 })
+
+describe('share hash — portions', () => {
+  const portioned: RoundState = {
+    ...sample,
+    items: [
+      ...sample.items,
+      {
+        id: 'p1',
+        name: 'One36 Pork Adobo w/ Egg',
+        qty: 3,
+        unitPrice: cents(1400),
+        assignedDinerIds: [],
+        portions: [
+          { units: 1, assignedDinerIds: ['d1'] },
+          { units: 2, assignedDinerIds: ['d1', 'd2', 'd3'] },
+        ],
+      },
+    ],
+  }
+
+  it('round-trips a portioned round byte-for-byte', () => {
+    const hash = encodeShareHash(portioned)
+    expect(decodeShareHash(hash)).toEqual(portioned)
+  })
+
+  it('a v1 link without portions still decodes un-split (no portions key)', () => {
+    const decoded = decodeShareHash(encodeShareHash(sample))!
+    expect(decoded.items.every((i) => !('portions' in i))).toBe(true)
+  })
+
+  it('a v1 link with a non-conserving portion decodes downgraded, never null', async () => {
+    const { compressToEncodedURIComponent } = await import('lz-string')
+    const bad = JSON.parse(JSON.stringify(portioned)) as RoundState
+    // Force Σ units (1+2=3) ≠ qty by bumping qty to 4 → schema downgrades to un-split.
+    ;(bad.items[bad.items.length - 1] as { qty: number }).qty = 4
+    const hash = 'r=' + compressToEncodedURIComponent(JSON.stringify({ v: 1, s: bad }))
+    const decoded = decodeShareHash(hash)
+    expect(decoded).not.toBeNull()
+    expect('portions' in decoded!.items[decoded!.items.length - 1]!).toBe(false)
+  })
+
+  it('stays under 2000 chars with a portioned item', () => {
+    expect(encodeShareHash(portioned).length).toBeLessThan(2000)
+  })
+})
