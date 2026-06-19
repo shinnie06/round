@@ -235,4 +235,24 @@ describe('mapToState — portions', () => {
     )
     expect(s.items.map(isPortioned)).toEqual([false, false, false])
   })
+
+  it('serializes byte-identical to an un-split item — JSON round-trip carries no portions key', () => {
+    const s = mapToState(
+      receipt({ items: [{ name: 'Tiger Beer', qty: 3, line_total: 27.0 }] }),
+      green,
+    )
+    const item = s.items[0]!
+    const json = JSON.stringify(item)
+    expect(json.includes('portions')).toBe(false)
+    const reparsed = JSON.parse(json) as typeof item
+    expect('portions' in reparsed).toBe(false)
+    expect(reparsed).toEqual(item)
+    expect(Object.keys(item).sort()).toEqual([
+      'assignedDinerIds',
+      'id',
+      'name',
+      'qty',
+      'unitPrice',
+    ])
+  })
 })
