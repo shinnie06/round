@@ -506,9 +506,16 @@ describe('store — portions', () => {
     const before = JSON.stringify(splitBill(round()).perDiner)
     const [shin] = round().diners
     a().toggleAssignment(item.id, shin!.id) // mutates dormant assignedDinerIds
-    a().assignOnly(item.id, shin!.id) // mutates dormant assignedDinerIds
     a().assignEveryone(item.id) // mutates dormant assignedDinerIds
-    const after = JSON.stringify(splitBill(round()).perDiner)
-    expect(after).toBe(before)
+    // End on assignOnly so the dormant item.assignedDinerIds is [shin] — a
+    // genuinely-differing, non-sentinel state. A regressed engine that read
+    // item.assignedDinerIds on a portioned item would dump all 2700 onto shin;
+    // the correct engine reads the {3, []} portion and keeps the 3-way split.
+    a().assignOnly(item.id, shin!.id) // dormant assignedDinerIds is now [shin]
+    expect(round().items[0]!.assignedDinerIds).toEqual([shin!.id]) // dormant field genuinely differs
+    const after = splitBill(round()).perDiner
+    expect(JSON.stringify(after)).toBe(before)
+    // Lock the actual numbers: still the everyone 3-way 900-each split, NOT 2700→shin.
+    expect(after.map((d) => d.food)).toEqual([cents(900), cents(900), cents(900)])
   })
 }) // end describe('store — portions')
