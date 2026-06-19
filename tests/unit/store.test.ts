@@ -192,4 +192,64 @@ describe('store — portions', () => {
       { units: 1, assignedDinerIds: [] },
     ])
   })
+
+  it('setPortionUnits moves units to/from the right neighbour conserving qty', () => {
+    seed()
+    const item = round().items[0]! // qty 3
+    a().splitItem(item.id)
+    a().addPortion(item.id) // [{2,[]},{1,[]}]
+    a().setPortionUnits(item.id, 0, 1) // 2->1, neighbour 1->2
+    expect(round().items[0]!.portions).toEqual([
+      { units: 1, assignedDinerIds: [] },
+      { units: 2, assignedDinerIds: [] },
+    ])
+  })
+
+  it('setPortionUnits clamps to [1, cur+nbr]', () => {
+    seed()
+    const item = round().items[0]! // qty 3
+    a().splitItem(item.id)
+    a().addPortion(item.id) // [{2,[]},{1,[]}]
+    a().setPortionUnits(item.id, 0, 99) // clamp to cur+nbr = 3
+    expect(round().items[0]!.portions).toEqual([
+      { units: 3, assignedDinerIds: [] },
+      { units: 0, assignedDinerIds: [] },
+    ])
+    a().setPortionUnits(item.id, 0, -5) // clamp to 1
+    expect(round().items[0]!.portions![0]!.units).toBe(1)
+  })
+
+  it('setPortionUnits floors a fractional input before it reaches cents()', () => {
+    seed()
+    const item = round().items[0]! // qty 3
+    a().splitItem(item.id)
+    a().addPortion(item.id) // [{2,[]},{1,[]}]
+    a().setPortionUnits(item.id, 1, 1.9) // floor(1.9)=1 === cur -> no-op
+    expect(round().items[0]!.portions).toEqual([
+      { units: 2, assignedDinerIds: [] },
+      { units: 1, assignedDinerIds: [] },
+    ])
+  })
+
+  it('setPortionUnits is a no-op on a single portion', () => {
+    seed()
+    const item = round().items[0]! // qty 3
+    a().splitItem(item.id) // single portion {3,[]}
+    a().setPortionUnits(item.id, 0, 1)
+    expect(round().items[0]!.portions).toEqual([{ units: 3, assignedDinerIds: [] }])
+  })
+
+  it('setPortionUnits is a no-op for an out-of-range index or un-split item', () => {
+    seed()
+    const item = round().items[0]!
+    a().setPortionUnits(item.id, 0, 1) // un-split -> no-op
+    expect(round().items[0]!.portions).toBeUndefined()
+    a().splitItem(item.id)
+    a().addPortion(item.id) // [{2,[]},{1,[]}]
+    a().setPortionUnits(item.id, 5, 1) // index out of range -> no-op
+    expect(round().items[0]!.portions).toEqual([
+      { units: 2, assignedDinerIds: [] },
+      { units: 1, assignedDinerIds: [] },
+    ])
+  })
 }) // end describe('store — portions')
