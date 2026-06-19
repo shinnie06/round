@@ -4,6 +4,9 @@ import { Link2, Share2, Check } from 'lucide-react'
 import { encodeShareHash } from '@/state/urlhash'
 import { useStore } from '@/state/store'
 import { Button } from '@/components/Button'
+import type { BillSplit } from '@/math/splitBill'
+import { shareMessage } from './shareMessage'
+import { buildShareText } from './shareText'
 
 /**
  * The whole round, in a URL. The hash never reaches any server —
@@ -15,12 +18,13 @@ function shareUrl(): string {
   return `${window.location.origin}${window.location.pathname}#${hash}`
 }
 
-export function ShareActions() {
+export function ShareActions({ split }: { split: BillSplit }) {
   const [copied, setCopied] = useState(false)
 
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(shareUrl())
+      const round = useStore.getState().round
+      await navigator.clipboard.writeText(shareMessage(round, split, shareUrl()))
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch {
@@ -30,7 +34,12 @@ export function ShareActions() {
 
   const nativeShare = async () => {
     try {
-      await navigator.share({ title: 'Round — our bill', url: shareUrl() })
+      const round = useStore.getState().round
+      await navigator.share({
+        title: 'Round — our bill',
+        text: buildShareText(round, split),
+        url: shareUrl(),
+      })
     } catch {
       /* user dismissed the share sheet */
     }

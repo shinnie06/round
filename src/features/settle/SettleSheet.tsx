@@ -59,7 +59,7 @@ export function SettleSheet() {
           <Money cents={split.breakdown.grandTotal} className="text-cream" />
         </div>
 
-        <ShareActions />
+        <ShareActions split={split} />
       </div>
     </Sheet>
   )
