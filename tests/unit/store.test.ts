@@ -127,3 +127,37 @@ describe('store — one-tap assignment (assignOnly / assignEveryone)', () => {
     expect(round().items[0]!.assignedDinerIds).toEqual([])
   })
 })
+
+describe('store — portions', () => {
+  it('splitItem seeds one full-allocation portion copying assignedDinerIds', () => {
+    seed()
+    const item = round().items[0]!
+    a().assignOnly(item.id, round().diners[2]!.id) // explicit [raj]
+    a().splitItem(item.id)
+    const p = round().items[0]!.portions
+    expect(p).toEqual([{ units: 3, assignedDinerIds: [round().diners[2]!.id] }])
+  })
+
+  it('splitItem keeps the everyone sentinel as [] on the seeded portion', () => {
+    seed()
+    const item = round().items[0]! // assignedDinerIds is [] by default
+    a().splitItem(item.id)
+    expect(round().items[0]!.portions).toEqual([{ units: 3, assignedDinerIds: [] }])
+  })
+
+  it('splitItem is a no-op for qty < 2', () => {
+    seed()
+    a().addItem({ name: 'Coffee', qty: 1, unitPrice: cents(500) })
+    const coffee = round().items[1]!
+    a().splitItem(coffee.id)
+    expect(round().items[1]!.portions).toBeUndefined()
+  })
+
+  it('splitItem is idempotent — no-op if already portioned', () => {
+    seed()
+    const item = round().items[0]!
+    a().splitItem(item.id)
+    a().splitItem(item.id) // second call must not re-seed
+    expect(round().items[0]!.portions).toEqual([{ units: 3, assignedDinerIds: [] }])
+  })
+}) // end describe('store — portions')
