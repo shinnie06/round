@@ -18,6 +18,16 @@ import { lineTotal, portionTotal, isPortioned, type Diner, type RoundState } fro
  *
  * Invariant (fuzz-tested): Σ per-diner totals === grand total. Always.
  */
+export interface FoodLine {
+  itemId: string
+  /** Item name, copied so share text needs no item lookup. */
+  name: string
+  /** This diner's exact cents for this item (this portion if portioned). */
+  food: Cents
+  /** Present ONLY when the item isPortioned(). Drives "1 of 3" vs "shared 2 of 3" copy. */
+  portion?: { units: number; qty: number; shareOf: number }
+}
+
 export interface DinerSplit {
   dinerId: string
   food: Cents
@@ -25,6 +35,7 @@ export interface DinerSplit {
   service: Cents
   gst: Cents
   total: Cents
+  lines: FoodLine[]
 }
 
 export interface BillSplit {
@@ -120,6 +131,7 @@ export function splitBill(state: RoundState): BillSplit {
       service: serviceShares[i]!,
       gst: gstShares[i]!,
       total: adjusted[i]!,
+      lines: [],
     })),
     residual,
     residualDinerId: absorbedBy === null ? null : diners[absorbedBy]!.id,

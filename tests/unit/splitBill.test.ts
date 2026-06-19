@@ -345,3 +345,18 @@ describe('splitBill — portions', () => {
     expect(baseline.perDiner.map((d) => d.food)).toEqual([500, 500])
   })
 })
+
+describe('splitBill — lines decomposition', () => {
+  it('every DinerSplit carries a lines array', () => {
+    const state = round({
+      diners: [diner('a'), diner('b')],
+      items: [item('x', 1000)],
+      servicePct: 0,
+      gstPct: 0,
+    })
+    const s = splitBill(state)
+    for (const d of s.perDiner) {
+      expect(Array.isArray(d.lines)).toBe(true)
+    }
+  })
+})
