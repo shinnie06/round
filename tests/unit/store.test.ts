@@ -321,4 +321,46 @@ describe('store — portions', () => {
     expect(JSON.stringify(round().items[0])).toBe(before)
     expect('portions' in round().items[0]!).toBe(false)
   })
+
+  it('togglePortionAssignment off [] materializes the explicit n-1 list', () => {
+    seed()
+    const item = round().items[0]! // qty 3
+    a().splitItem(item.id) // portion 0 = {3,[]}
+    const ids = round().diners.map((d) => d.id)
+    a().togglePortionAssignment(item.id, 0, ids[1]!) // toggle Mei off everyone
+    expect(round().items[0]!.portions![0]!.assignedDinerIds).toEqual([ids[0], ids[2]])
+  })
+
+  it('togglePortionAssignment re-adding the last missing diner collapses to []', () => {
+    seed()
+    const item = round().items[0]!
+    a().splitItem(item.id)
+    const mei = round().diners[1]!.id
+    a().togglePortionAssignment(item.id, 0, mei) // -> [shin, raj]
+    a().togglePortionAssignment(item.id, 0, mei) // re-add -> []
+    expect(round().items[0]!.portions![0]!.assignedDinerIds).toEqual([])
+  })
+
+  it('togglePortionAssignment refuses to empty a portion (>=1 rule)', () => {
+    seed()
+    const item = round().items[0]!
+    const [shin] = round().diners
+    // Single-diner portion [shin] via existing item-level assignOnly + splitItem
+    // (no per-portion action — assignPortionOnly is a later task and would also
+    // break typecheck).
+    a().assignOnly(item.id, shin!.id) // item.assignedDinerIds -> [shin]
+    a().splitItem(item.id) // portion 0 = {3, [shin]}
+    a().togglePortionAssignment(item.id, 0, shin!.id) // would leave nobody -> refused
+    expect(round().items[0]!.portions![0]!.assignedDinerIds).toEqual([shin!.id])
+  })
+
+  it('togglePortionAssignment is a no-op on an un-split item / bad index', () => {
+    seed()
+    const item = round().items[0]!
+    a().togglePortionAssignment(item.id, 0, round().diners[0]!.id) // un-split
+    expect(round().items[0]!.portions).toBeUndefined()
+    a().splitItem(item.id)
+    a().togglePortionAssignment(item.id, 9, round().diners[0]!.id) // bad index
+    expect(round().items[0]!.portions![0]!.assignedDinerIds).toEqual([])
+  })
 }) // end describe('store — portions')

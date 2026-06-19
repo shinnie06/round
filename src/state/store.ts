@@ -40,6 +40,7 @@ export interface StoreState {
     setPortionUnits: (itemId: string, portionIndex: number, units: number) => void
     removePortion: (itemId: string, portionIndex: number) => void
     mergePortions: (itemId: string) => void
+    togglePortionAssignment: (itemId: string, portionIndex: number, dinerId: string) => void
     toggleAssignment: (itemId: string, dinerId: string) => void
     /** One tap: this item belongs to exactly this diner. */
     assignOnly: (itemId: string, dinerId: string) => void
@@ -175,6 +176,21 @@ export const useStore = create<StoreState>()(
           if (!it?.portions) return
           it.assignedDinerIds = [...it.portions[0]!.assignedDinerIds]
           delete it.portions
+        }),
+
+      togglePortionAssignment: (itemId, portionIndex, dinerId) =>
+        set((s) => {
+          const it = s.round.items.find((i) => i.id === itemId)
+          const p = it?.portions?.[portionIndex]
+          if (!p) return
+          const allIds = s.round.diners.map((d) => d.id)
+          const current = p.assignedDinerIds.length === 0 ? allIds : p.assignedDinerIds
+          const next = current.includes(dinerId)
+            ? current.filter((id) => id !== dinerId)
+            : [...current, dinerId]
+          if (next.length === 0) return
+          const coversEveryone = allIds.length > 0 && allIds.every((id) => next.includes(id))
+          p.assignedDinerIds = coversEveryone ? [] : next
         }),
 
       /**
