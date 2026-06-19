@@ -436,4 +436,79 @@ describe('splitBill — lines decomposition', () => {
       expect(sum).toBe(d.food)
     }
   })
+
+  it('portioned item: solo line shareOf 1, shared line shareOf 3, treated diner has no line', () => {
+    const state = round({
+      diners: [diner('P1'), diner('P2'), diner('P3'), diner('M')],
+      items: [
+        {
+          id: 'adobo',
+          name: 'Adobo',
+          qty: 3,
+          unitPrice: cents(1400),
+          assignedDinerIds: [],
+          portions: [
+            { units: 1, assignedDinerIds: ['P1'] }, // solo
+            { units: 2, assignedDinerIds: ['P1', 'P2', 'P3'] }, // except M; 2800/3 → [934,933,933]
+          ],
+        },
+      ],
+      servicePct: 0,
+      gstPct: 0,
+    })
+    const s = splitBill(state)
+    const p1 = s.perDiner.find((d) => d.dinerId === 'P1')!
+    // P1 has a solo unit AND a share of the rest → TWO lines for the same itemId
+    const p1Adobo = p1.lines.filter((l) => l.itemId === 'adobo')
+    expect(p1Adobo).toHaveLength(2)
+    const solo = p1Adobo.find((l) => l.portion!.shareOf === 1)!
+    expect(solo.food).toBe(1400)
+    expect(solo.portion).toEqual({ units: 1, qty: 3, shareOf: 1 })
+    const shared = p1Adobo.find((l) => l.portion!.shareOf === 3)!
+    expect(shared.food).toBe(934)
+    expect(shared.portion).toEqual({ units: 2, qty: 3, shareOf: 3 })
+    // M is in no portion → NO line for adobo at all
+    const m = s.perDiner.find((d) => d.dinerId === 'M')!
+    expect(m.lines.filter((l) => l.itemId === 'adobo')).toHaveLength(0)
+    expect(m.food).toBe(0)
+  })
+
+  it('Σ over all diners lines.food === subtotal === Σ DinerSplit.food', () => {
+    const state = round({
+      diners: [diner('P1'), diner('P2'), diner('P3'), diner('M')],
+      items: [
+        { id: 'snapper', name: 'Snapper', qty: 5, unitPrice: cents(1800), assignedDinerIds: [] },
+        {
+          id: 'adobo',
+          name: 'Adobo',
+          qty: 3,
+          unitPrice: cents(1400),
+          assignedDinerIds: [],
+          portions: [
+            { units: 1, assignedDinerIds: ['P1'] },
+            { units: 2, assignedDinerIds: ['P1', 'P2', 'P3'] },
+          ],
+        },
+        {
+          id: 'chicken',
+          name: 'Chicken',
+          qty: 3,
+          unitPrice: cents(1000),
+          assignedDinerIds: [],
+          portions: [
+            { units: 1, assignedDinerIds: ['P2'] },
+            { units: 2, assignedDinerIds: ['P1', 'P2', 'P3'] },
+          ],
+        },
+      ],
+    })
+    const s = splitBill(state)
+    const sumFood = s.perDiner.reduce((a, d) => a + d.food, 0)
+    const sumLines = s.perDiner.reduce((a, d) => a + d.lines.reduce((b, l) => b + l.food, 0), 0)
+    expect(sumFood).toBe(16200) // worked-scenario subtotal
+    expect(sumLines).toBe(sumFood)
+    for (const d of s.perDiner) {
+      expect(d.lines.reduce((b, l) => b + l.food, 0)).toBe(d.food)
+    }
+  })
 })
