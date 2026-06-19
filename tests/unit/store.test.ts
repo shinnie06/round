@@ -445,4 +445,30 @@ describe('store — portions', () => {
     a().removeDiner(round().diners[0]!.id)
     expect(round().items[0]!.portions).toBeUndefined()
   })
+
+  it('a diner added after a split shares [] portions but zero of explicit portions', () => {
+    seed() // Shin, Mei, Raj + Beer qty 3 @ 900
+    const item = round().items[0]!
+    a().splitItem(item.id) // {3, []}
+    a().addPortion(item.id) // [{2,[]},{1,[]}]
+    const [shin, mei, raj] = round().diners
+    // portion 0 explicit [shin,mei] (toggle raj OFF — a PROPER subset that stays
+    // explicit; selecting ALL current diners collapses back to the [] sentinel,
+    // so an explicit list that must exclude a future diner has to omit at least
+    // one current diner). portion 1 stays [] (everyone).
+    a().togglePortionAssignment(item.id, 0, raj!.id) // [] -> [shin,mei]
+    a().assignPortionEveryone(item.id, 1) // portion 1 = [] sentinel (already [])
+    // Now add M LATE.
+    a().addDiner('M')
+    const m = round().diners[3]!
+    // addDiner must not have mutated any portion list.
+    expect(round().items[0]!.portions![0]!.assignedDinerIds).toEqual([shin!.id, mei!.id])
+    expect(round().items[0]!.portions![1]!.assignedDinerIds).toEqual([])
+    // OUTCOME: portion 1 (1 unit @ 900 = 900) splits across all 4 incl. M;
+    // portion 0 (2 units @ 900 = 1800) excludes M.
+    const split = splitBill(round())
+    const mSplit = split.perDiner.find((p) => p.dinerId === m.id)!
+    // M's only food is a 4-way share of 900: distributeProportionally(900,[1,1,1,1]) -> 225 each.
+    expect(mSplit.food).toBe(cents(225))
+  })
 }) // end describe('store — portions')
