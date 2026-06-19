@@ -160,4 +160,36 @@ describe('store — portions', () => {
     a().splitItem(item.id) // second call must not re-seed
     expect(round().items[0]!.portions).toEqual([{ units: 3, assignedDinerIds: [] }])
   })
+
+  it('addPortion carves a 1-unit slice off the last portion with units >= 2', () => {
+    seed()
+    const item = round().items[0]! // qty 3
+    a().splitItem(item.id) // [{units:3, []}]
+    a().addPortion(item.id)
+    expect(round().items[0]!.portions).toEqual([
+      { units: 2, assignedDinerIds: [] },
+      { units: 1, assignedDinerIds: [] },
+    ])
+  })
+
+  it('addPortion is a no-op on an un-split item', () => {
+    seed()
+    const item = round().items[0]!
+    a().addPortion(item.id)
+    expect(round().items[0]!.portions).toBeUndefined()
+  })
+
+  it('addPortion is a no-op when fully fragmented (every portion 1 unit)', () => {
+    seed()
+    const item = round().items[0]! // qty 3
+    a().splitItem(item.id)
+    a().addPortion(item.id) // -> [2,1]
+    a().addPortion(item.id) // -> [1,1,1]
+    a().addPortion(item.id) // fully fragmented -> no-op
+    expect(round().items[0]!.portions).toEqual([
+      { units: 1, assignedDinerIds: [] },
+      { units: 1, assignedDinerIds: [] },
+      { units: 1, assignedDinerIds: [] },
+    ])
+  })
 }) // end describe('store — portions')

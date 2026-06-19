@@ -36,6 +36,7 @@ export interface StoreState {
     updateItem: (id: string, patch: Partial<Omit<Item, 'id'>>) => void
     removeItem: (id: string) => void
     splitItem: (itemId: string) => void
+    addPortion: (itemId: string) => void
     toggleAssignment: (itemId: string, dinerId: string) => void
     /** One tap: this item belongs to exactly this diner. */
     assignOnly: (itemId: string, dinerId: string) => void
@@ -125,6 +126,19 @@ export const useStore = create<StoreState>()(
           const it = s.round.items.find((i) => i.id === itemId)
           if (!it || it.qty < 2 || it.portions) return
           it.portions = [{ units: it.qty, assignedDinerIds: [...it.assignedDinerIds] }]
+        }),
+
+      addPortion: (itemId) =>
+        set((s) => {
+          const it = s.round.items.find((i) => i.id === itemId)
+          if (!it?.portions) return
+          for (let k = it.portions.length - 1; k >= 0; k--) {
+            if (it.portions[k]!.units >= 2) {
+              it.portions[k]!.units -= 1
+              it.portions.push({ units: 1, assignedDinerIds: [] })
+              return
+            }
+          }
         }),
 
       /**
