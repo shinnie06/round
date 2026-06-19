@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { mapToState } from '@/features/ocr/mapToState'
 import { reconcile } from '@/features/ocr/reconcile'
 import { lineTotal, isPortioned } from '@/state/types'
+import { parseRoundState } from '@/state/schema'
 import { cents } from '@/math/money'
 import type { CleanReceipt, Verdict } from '@/features/ocr/types'
 
@@ -254,5 +255,26 @@ describe('mapToState — portions', () => {
       'qty',
       'unitPrice',
     ])
+  })
+
+  it('OCR output parses through parseRoundState with the transform as a portion-free no-op', () => {
+    const s = mapToState(
+      receipt({
+        items: [
+          { name: 'Chilli Crab', qty: 1, line_total: 88.0 },
+          { name: 'Tiger Beer', qty: 3, line_total: 27.0 },
+        ],
+      }),
+      green,
+    )
+    const parsed = parseRoundState(s)
+    expect(parsed).not.toBeNull()
+    expect(parsed!.items).toHaveLength(2)
+    for (const item of parsed!.items) {
+      expect('portions' in item).toBe(false)
+      expect(isPortioned(item)).toBe(false)
+    }
+    // the schema transform did not alter the OCR items at all
+    expect(parsed!.items).toEqual(s.items)
   })
 })
