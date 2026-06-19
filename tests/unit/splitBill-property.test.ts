@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { cents } from '@/math/money'
 import { splitBill } from '@/math/splitBill'
 import type { Diner, Item, RoundState } from '@/state/types'
+import { parseRoundState } from '@/state/schema'
 
 /**
  * THE invariant of the whole app: Σ per-diner totals === grand total,
@@ -101,6 +102,60 @@ describe('splitBill property: exact-sum invariant', () => {
         }
       }
       expect(s.breakdown.subtotal, `subtotal case ${i}`).toBe(expectedSubtotal)
+    }
+  })
+
+  it('non-conserving portions routed through parseRoundState never break the engine', () => {
+    let seed = 0xbeef
+    const rand = () => ((seed = (seed * 1664525 + 1013904223) >>> 0), seed / 2 ** 32)
+    const randInt = (lo: number, hi: number) => lo + Math.floor(rand() * (hi - lo + 1))
+
+    for (let i = 0; i < 120; i++) {
+      const dinerCount = randInt(1, 5)
+      const diners = Array.from({ length: dinerCount }, (_, d) => ({
+        id: `d${d}`,
+        name: `Diner ${d}`,
+        colorIdx: d % 8,
+      }))
+
+      const items = Array.from({ length: randInt(1, 6) }, (_, j) => {
+        const qty = randInt(2, 5)
+        // DELIBERATELY non-conserving: each portion gets an INDEPENDENT random
+        // unit count, so Σ units almost never equals qty → schema downgrades it.
+        const k = randInt(1, 3)
+        const portions = Array.from({ length: k }, () => ({
+          units: randInt(1, 4),
+          assignedDinerIds: diners.filter(() => rand() < 0.5).map((d) => d.id),
+        }))
+        return {
+          id: `i${j}`,
+          name: `Item ${j}`,
+          qty,
+          unitPrice: randInt(1, 20_000),
+          assignedDinerIds: [] as string[],
+          portions,
+        }
+      })
+
+      const raw = {
+        venue: 'Fuzz',
+        diners,
+        items,
+        discount: randInt(0, 5_000),
+        servicePct: 0.1,
+        gstPct: 0.09,
+        rounding: randInt(0, 8) - 4,
+        scan: null,
+        scannedTotal: null,
+      }
+
+      // The schema either keeps conserving portions or downgrades to un-split;
+      // either way the engine input is valid and Σ must balance.
+      const parsed = parseRoundState(raw)
+      expect(parsed, `parse case ${i}`).not.toBeNull()
+      const s = splitBill(parsed!)
+      const sum = s.perDiner.reduce<number>((a, d) => a + d.total, 0)
+      expect(sum, `case ${i}`).toBe(s.breakdown.grandTotal)
     }
   })
 })
