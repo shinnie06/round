@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { cents } from '@/math/money'
 import { formatSGD, parseDollarInput } from '@/lib/format'
+import { isPortioned } from '@/state/types'
 import { useStore } from '@/state/store'
 import { Sheet } from '@/components/Sheet'
 import { Field } from '@/components/Field'
@@ -79,14 +80,19 @@ export function ItemSheet({ state, onClose }: { state: ItemSheetMode; onClose: (
           onChange={(e) => setName(e.target.value)}
         />
         <div className="grid grid-cols-2 gap-3">
-          <Field
-            id="item-qty"
-            label="Quantity"
-            value={qty}
-            inputMode="numeric"
-            autoComplete="off"
-            onChange={(e) => setQty(e.target.value)}
-          />
+          <div className="flex flex-col gap-1">
+            <Field
+              id="item-qty"
+              label="Quantity"
+              value={qty}
+              inputMode="numeric"
+              autoComplete="off"
+              onChange={(e) => setQty(e.target.value)}
+            />
+            {editing && isPortioned(editing) && (
+              <p className="text-small text-cream-faint">Changing quantity clears the split.</p>
+            )}
+          </div>
           <Field
             id="item-price"
             label="Line total in dollars"
