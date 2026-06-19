@@ -471,4 +471,31 @@ describe('store — portions', () => {
     // M's only food is a 4-way share of 900: distributeProportionally(900,[1,1,1,1]) -> 225 each.
     expect(mSplit.food).toBe(cents(225))
   })
+
+  it('updateItem changing qty on a portioned item drops portions', () => {
+    seed()
+    const item = round().items[0]! // qty 3
+    a().splitItem(item.id)
+    a().updateItem(item.id, { qty: 4 })
+    expect(round().items[0]!.portions).toBeUndefined()
+    expect(round().items[0]!.qty).toBe(4)
+  })
+
+  it('updateItem re-saving the SAME qty preserves portions (value-compare)', () => {
+    seed()
+    const item = round().items[0]! // qty 3
+    a().splitItem(item.id)
+    a().updateItem(item.id, { qty: 3 }) // same value -> must NOT drop
+    expect(round().items[0]!.portions).toEqual([{ units: 3, assignedDinerIds: [] }])
+  })
+
+  it('updateItem patching name/unitPrice preserves portions', () => {
+    seed()
+    const item = round().items[0]! // qty 3
+    a().splitItem(item.id)
+    a().updateItem(item.id, { name: 'Lager', unitPrice: cents(1000) })
+    expect(round().items[0]!.portions).toEqual([{ units: 3, assignedDinerIds: [] }])
+    expect(round().items[0]!.name).toBe('Lager')
+    expect(round().items[0]!.unitPrice).toBe(cents(1000))
+  })
 }) // end describe('store — portions')

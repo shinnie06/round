@@ -123,7 +123,9 @@ export const useStore = create<StoreState>()(
       updateItem: (id, patch) =>
         set((s) => {
           const it = s.round.items.find((i) => i.id === id)
-          if (it) Object.assign(it, patch)
+          if (!it) return
+          if (patch.qty !== undefined && patch.qty !== it.qty && it.portions) delete it.portions
+          Object.assign(it, patch)
         }),
 
       removeItem: (id) =>
