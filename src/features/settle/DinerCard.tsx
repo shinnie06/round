@@ -60,8 +60,8 @@ export function DinerCard({
             transition={{ type: 'spring', stiffness: 420, damping: 38 }}
           >
             <dl className="flex flex-col gap-1.5 border-t border-line px-4 py-3 text-small text-cream-dim">
-              {rows.map((r) => (
-                <div key={r.label} className="flex justify-between">
+              {rows.map((r, i) => (
+                <div key={i} className="flex justify-between">
                   <dt>{r.label}</dt>
                   <dd>
                     <Money cents={cents(r.amount)} signColor />

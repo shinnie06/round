@@ -161,7 +161,10 @@ export const useStore = create<StoreState>()(
           const nbr = portionIndex + 1 < ps.length ? portionIndex + 1 : portionIndex - 1
           if (nbr < 0) return
           const cur = ps[portionIndex]!.units
-          const max = cur + ps[nbr]!.units
+          // Upper bound leaves the neighbour with >=1 unit: a portion must never
+          // reach 0 units (Portion.units >= 1). To fully absorb a neighbour, the
+          // user removes it (removePortion / mergePortions), not drains it to 0.
+          const max = cur + ps[nbr]!.units - 1
           const next = Math.min(Math.max(1, Math.floor(units)), max)
           if (next === cur) return
           ps[nbr]!.units += cur - next

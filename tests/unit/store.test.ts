@@ -206,18 +206,21 @@ describe('store — portions', () => {
     ])
   })
 
-  it('setPortionUnits clamps to [1, cur+nbr]', () => {
+  it('setPortionUnits never drains the neighbour below 1 (upper clamp = cur+nbr-1)', () => {
     seed()
     const item = round().items[0]! // qty 3
     a().splitItem(item.id)
     a().addPortion(item.id) // [{2,[]},{1,[]}]
-    a().setPortionUnits(item.id, 0, 99) // clamp to cur+nbr = 3
+    a().setPortionUnits(item.id, 0, 99) // can't take the neighbour's last unit -> capped, neighbour stays at 1
     expect(round().items[0]!.portions).toEqual([
-      { units: 3, assignedDinerIds: [] },
-      { units: 0, assignedDinerIds: [] },
+      { units: 2, assignedDinerIds: [] },
+      { units: 1, assignedDinerIds: [] },
     ])
-    a().setPortionUnits(item.id, 0, -5) // clamp to 1
-    expect(round().items[0]!.portions![0]!.units).toBe(1)
+    a().setPortionUnits(item.id, 0, -5) // clamp target to 1; neighbour absorbs the unit
+    expect(round().items[0]!.portions).toEqual([
+      { units: 1, assignedDinerIds: [] },
+      { units: 2, assignedDinerIds: [] },
+    ])
   })
 
   it('setPortionUnits floors a fractional input before it reaches cents()', () => {
@@ -497,6 +500,17 @@ describe('store — portions', () => {
     expect(round().items[0]!.portions).toEqual([{ units: 3, assignedDinerIds: [] }])
     expect(round().items[0]!.name).toBe('Lager')
     expect(round().items[0]!.unitPrice).toBe(cents(1000))
+  })
+
+  it('updateItem changing qty to 1 drops portions and the item can no longer be split', () => {
+    seed()
+    const item = round().items[0]! // qty 3
+    a().splitItem(item.id)
+    a().updateItem(item.id, { qty: 1 }) // qty value change -> drop portions
+    expect(round().items[0]!.portions).toBeUndefined()
+    expect(round().items[0]!.qty).toBe(1)
+    a().splitItem(item.id) // qty < 2 -> no-op, stays un-split
+    expect(round().items[0]!.portions).toBeUndefined()
   })
 
   it('item-level assignment is dormant while portioned (split output unchanged)', () => {
