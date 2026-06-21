@@ -64,6 +64,7 @@ Round does the real thing. It allocates each item to whoever ate it, distributes
 | 📸 **Scan a receipt** | Point your phone at the bill. A vision LLM in your LMStudio reads items, prices, service, GST, and the rounding line. |
 | ✍️ **Or go manual** | No camera, no model, no problem — add items and diners by hand with a fast keypad-friendly UI. |
 | 👥 **Per-item assignment** | Tap to assign each item to one diner, a few, or everyone. "Everyone" is the default; items always keep at least one owner. |
+| ✂️ **Split a line into parts** | Divide one multi-unit item between groups — pay a dish solo, share the rest, and leave a guest of honour off the parts they're treated to (they just aren't in that part's list). Opt-in, cent-exact, and itemised on the settle screen. |
 | 🧾 **Faithful charge model** | Discount, service %, GST %, and a signed cash-rounding line — editable, with a one-tap "round to 5¢" action. |
 | ✅ **Hallucination guard** | A Tier-2 arithmetic check recomputes the bill from parsed lines and flags green / amber / red **without** a second LLM call. |
 | 🔗 **Share by link** | "Square Up" compresses the whole split into a URL hash. Send it; the recipient opens a read-only breakdown — no app, no account. |
@@ -248,6 +249,10 @@ and synthetic receipts (`tests/eval/`).
 
 Shipped in v1: scan, manual entry, per-item assignment, the full SG charge model,
 the reconcile guard, resumable drafts, share links, and the installable PWA.
+
+**v1.1** adds **line-item portions** — split one item between groups and treat a
+guest by leaving them off a part. See [`CHANGELOG.md`](CHANGELOG.md) for the full
+version history.
 
 Deliberately **out of scope for v1** (the architecture leaves room for them):
 
