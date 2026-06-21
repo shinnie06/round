@@ -185,7 +185,16 @@ export const useStore = create<StoreState>()(
         set((s) => {
           const it = s.round.items.find((i) => i.id === itemId)
           if (!it?.portions) return
-          it.assignedDinerIds = [...it.portions[0]!.assignedDinerIds]
+          // Collapse to one line shared by everyone who paid for ANY part: a
+          // []-sentinel part means everyone; otherwise take the union of the
+          // explicit payer lists (a diner on no part — e.g. a treated guest —
+          // stays excluded). Collapse to [] when that union covers all diners.
+          const allIds = s.round.diners.map((d) => d.id)
+          const everyonePart = it.portions.some((p) => p.assignedDinerIds.length === 0)
+          const union = new Set(it.portions.flatMap((p) => p.assignedDinerIds))
+          const coversEveryone =
+            everyonePart || (allIds.length > 0 && allIds.every((id) => union.has(id)))
+          it.assignedDinerIds = coversEveryone ? [] : allIds.filter((id) => union.has(id))
           delete it.portions
         }),
 

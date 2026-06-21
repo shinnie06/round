@@ -290,21 +290,31 @@ describe('store — portions', () => {
     expect(round().items[0]!.portions).toBeUndefined()
   })
 
-  it('mergePortions collapses to un-split adopting portions[0] list (lossy)', () => {
+  it('mergePortions merges to everyone when any part is the [] everyone-sentinel', () => {
     seed()
     const item = round().items[0]! // qty 3; diners [shin, mei, raj]
     const [shin] = round().diners
-    // Build "portion 0 -> [shin]" using only actions defined by this point:
-    // assignOnly (existing item-level) sets the item list to [shin]; splitItem
-    // copies it into the seeded portion; addPortion adds a second [] portion
-    // whose list is discarded on merge (the lossiness).
-    a().assignOnly(item.id, shin!.id) // item.assignedDinerIds -> [shin]
+    a().assignOnly(item.id, shin!.id) // pre-split item-level [shin]
     a().splitItem(item.id) // portion 0 = {3, [shin]}
-    a().addPortion(item.id) // -> [{2,[shin]},{1,[]}]
-    expect(round().items[0]!.portions![0]!.assignedDinerIds).toEqual([shin!.id]) // precondition
+    a().addPortion(item.id) // -> [{2,[shin]},{1,[]}] — part 2 is everyone
     a().mergePortions(item.id)
     expect(round().items[0]!.portions).toBeUndefined()
-    expect(round().items[0]!.assignedDinerIds).toEqual([shin!.id])
+    // part 2 ([]) means everyone pays for it, so the merged line is everyone
+    expect(round().items[0]!.assignedDinerIds).toEqual([])
+  })
+
+  it('mergePortions unions the explicit part payers, keeping a treated diner excluded', () => {
+    seed() // diners [shin, mei, raj]
+    const item = round().items[0]!
+    const [shin, mei, raj] = round().diners
+    a().splitItem(item.id)
+    a().addPortion(item.id) // [{2,[]},{1,[]}]
+    a().togglePortionAssignment(item.id, 0, raj!.id) // part 0 -> [shin, mei] (raj off)
+    a().assignPortionOnly(item.id, 1, shin!.id) // part 1 -> [shin]
+    a().mergePortions(item.id)
+    expect(round().items[0]!.portions).toBeUndefined()
+    // union of {shin,mei} and {shin} = {shin,mei}; raj paid for no part -> excluded
+    expect(round().items[0]!.assignedDinerIds).toEqual([shin!.id, mei!.id])
   })
 
   it('mergePortions is a no-op on an un-split item', () => {

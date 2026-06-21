@@ -78,7 +78,11 @@ export function DinersSection() {
             if (e.key === 'Escape') setAdding(false)
           }}
           onBlur={() => {
-            if (!name.trim()) setAdding(false)
+            // Defer the close: blurring synchronously unmounts this field, and
+            // that layout shift would otherwise swallow the very click that
+            // caused the blur (e.g. the first tap on "Add item"). Letting the
+            // click land first, then closing, fixes that focus race.
+            if (!name.trim()) setTimeout(() => setAdding(false), 0)
           }}
         />
       )}

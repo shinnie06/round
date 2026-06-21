@@ -162,7 +162,7 @@ export function PortionEditor({
 
       {!readOnly && (
         <p className="text-small text-cream-faint">
-          Merging keeps the first part&apos;s people for the whole item.
+          Merging combines the parts; everyone paying for any part shares the item.
         </p>
       )}
 
