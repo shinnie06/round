@@ -52,6 +52,9 @@ The single source of truth is `RoundState` defined in `src/state/types.ts`:
   and the UI shows that lock explicitly instead of silently refusing.
 - `rounding: Cents` (signed) is the cash-rounding line; it defaults to 0 in
   the Zod schema so pre-rounding drafts and share links stay decodable.
+- `payerId: string | null` and `collectRounding: Cents` drive opt-in **collection
+  rounding** (off by default). Both default in the Zod schema (`null` / `0`), so
+  older drafts and share links stay decodable and the envelope stays `v1`.
 
 Store: Zustand + immer (`src/state/store.ts`), actions colocated.
 
@@ -73,20 +76,32 @@ splitBill(state)                          [src/math/splitBill.ts]
   ├─ Per-item per-person allocation
   │     - "everyone" sentinel → all diners
   │     - largest-remainder per item → every cent lands somewhere
+  │     - per-item food amounts + itemised lines are exact (drive the display)
   ├─ applyCharges(subtotal, charges)      [src/math/singapore.ts]
   │     - clamp discount to subtotal
   │     - service on (subtotal − discount)
   │     - GST on (subtotal − discount + service)
   │     - signed rounding line added after GST
-  ├─ distributeProportionally(...)        [src/math/proportional.ts]
-  │     - largest-remainder (Hamilton) method, weights = food share
-  │     - discount / service / GST each distributed exactly
-  └─ distributeResidual(...)              [src/math/residual.ts]
-        - signed leftover cents (incl. the rounding line) → highest payer
-        - "±N¢ rounding" surfaced in the settle screen
+  └─ distributeProportionally(grandTotal, exactFood)   [src/math/proportional.ts]
+        - ONE largest-remainder (Hamilton) pass over each diner's EXACT food
+          share → the authoritative per-diner total
+        - charge columns (discount / service / GST) are back-derived from
+          total − food for the settle breakdown (display only)
+        - rounding the TOTAL once — not every item and charge separately —
+          caps the spread between equal shares at 1¢ and folds the signed
+          cash-rounding line in proportionally (no single-payer residual)
 ```
 
-Invariant (fuzz-tested): **Σ per-diner totals === grand total, always.**
+Invariants (fuzz-tested): **Σ per-diner totals === grand total, always**; and
+**diners with an equal exact share are quoted within 1¢ of each other.**
+
+### Collection rounding (opt-in, settle layer)
+
+`src/features/settle/collectionRounding.ts` (`collectionView`) is a pure
+presentation layer *over* the exact split. When a payer is set and a unit chosen,
+each non-payer is rounded **down** to the unit and the payer absorbs the leftover
+cents. It never alters the underlying split — the engine stays cent-exact — and the
+shared read-only view hides the controls and the absorption hint.
 
 ## OCR pipeline
 

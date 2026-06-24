@@ -14,7 +14,7 @@ A local-first PWA that splits Singapore restaurant receipts. Snap a photo, assig
 [![TypeScript strict](https://img.shields.io/badge/TypeScript-strict-3178c6?style=flat-square&logo=typescript)](https://www.typescriptlang.org)
 [![Tailwind v4](https://img.shields.io/badge/Tailwind-v4-38bdf8?style=flat-square&logo=tailwindcss)](https://tailwindcss.com)
 [![PWA](https://img.shields.io/badge/PWA-installable-5a0fc8?style=flat-square)](public/manifest.webmanifest)
-[![Tests](https://img.shields.io/badge/tests-129%20passing-3fb950?style=flat-square&logo=vitest)](tests/)
+[![Tests](https://img.shields.io/badge/tests-243%20passing-3fb950?style=flat-square&logo=vitest)](tests/)
 
 </div>
 
@@ -27,6 +27,7 @@ Round is **local-first by design**. Receipt photos never leave your machine — 
 - 📱 **Phone + desktop** — installable PWA, tuned for both form factors.
 - 🇸🇬 **Singapore-correct math** — service charge, GST, and 5¢ cash rounding, to the cent.
 - 🧮 **Provably exact** — every cent of every charge lands on a diner (fuzz-tested invariant).
+- ⚖️ **Fair to the cent** — diners who owe the same amount are quoted within 1¢ of each other (also fuzz-tested).
 
 ## Contents
 
@@ -66,6 +67,8 @@ Round does the real thing. It allocates each item to whoever ate it, distributes
 | 👥 **Per-item assignment** | Tap to assign each item to one diner, a few, or everyone. "Everyone" is the default; items always keep at least one owner. |
 | ✂️ **Split a line into parts** | Divide one multi-unit item between groups — pay a dish solo, share the rest, and leave a guest of honour off the parts they're treated to (they just aren't in that part's list). Opt-in, cent-exact, and itemised on the settle screen. |
 | 🧾 **Faithful charge model** | Discount, service %, GST %, and a signed cash-rounding line — editable, with a one-tap "round to 5¢" action. |
+| ⚖️ **Fair between equal diners** | Two people who owe the same amount are always quoted within 1¢ — leftover pennies can't pile onto whoever's listed first. |
+| 🪙 **Round for easy collection** | Optionally round each person *down* to 5¢/10¢/50¢/$1; the bill-payer covers the few leftover cents and the shared view stays clean. Off by default. |
 | ✅ **Hallucination guard** | A Tier-2 arithmetic check recomputes the bill from parsed lines and flags green / amber / red **without** a second LLM call. |
 | 🔗 **Share by link** | "Square Up" compresses the whole split into a URL hash. Send it; the recipient opens a read-only breakdown — no app, no account. |
 | 💾 **Resumable drafts** | Work-in-progress is auto-saved to IndexedDB (debounced) and restored on next launch. |
@@ -141,7 +144,7 @@ One photo in, one share link out. The pipeline:
    workspace screen  ◄──── inline edits ──────────┘
             │
             ▼
-   splitBill.ts         ← singapore.ts → proportional.ts → residual.ts
+   splitBill.ts         ← singapore.ts → proportional.ts  (one rounding pass / diner)
             │
             ▼
    settle sheet  →  urlhash.ts (lz-string)  →  clipboard / share intent
@@ -176,14 +179,14 @@ round/
 │  │  ├─ splash/       Cinematic intro (GSAP timeline + lazy three.js ambient)
 │  │  ├─ workspace/    Items, diners, charges, per-item assignment sheets
 │  │  ├─ ocr/          LMStudio pipeline: preprocess → parse → sanitize → reconcile → map
-│  │  └─ settle/       Final breakdown, rounding surface, share actions
-│  ├─ math/            Pure money engine — splitBill, singapore, proportional, residual, money
+│  │  └─ settle/       Final breakdown, collection rounding, share actions
+│  ├─ math/            Pure money engine — splitBill, singapore, proportional, money
 │  ├─ state/           Zustand store, Zod schema, branded types, persistence, URL-hash codec
 │  ├─ components/      Design-system primitives — Button, Sheet, Field, Money, Logo…
 │  ├─ hooks/           useScan and friends
 │  └─ lib/             format, cn, service-worker registration, Lenis, reduced-motion…
 ├─ tests/
-│  ├─ unit/            Math + OCR pipeline (Vitest) — 129 cases
+│  ├─ unit/            Math + OCR pipeline (Vitest) — 243 cases
 │  └─ eval/            OCR accuracy harness (gated behind OCR_EVAL=1, needs LMStudio)
 ├─ docs/               architecture.md · lmstudio-setup.md · brand assets
 ├─ public/             manifest, icons, service worker, OG image
@@ -251,7 +254,11 @@ Shipped in v1: scan, manual entry, per-item assignment, the full SG charge model
 the reconcile guard, resumable drafts, share links, and the installable PWA.
 
 **v1.1** adds **line-item portions** — split one item between groups and treat a
-guest by leaving them off a part. See [`CHANGELOG.md`](CHANGELOG.md) for the full
+guest by leaving them off a part.
+
+**v1.2** makes rounding **fair between equal diners** (quoted within 1¢) and adds
+opt-in **collection rounding** — round each person down to a friendly unit, with the
+bill-payer absorbing the leftover. See [`CHANGELOG.md`](CHANGELOG.md) for the full
 version history.
 
 Deliberately **out of scope for v1** (the architecture leaves room for them):

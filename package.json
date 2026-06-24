@@ -1,7 +1,7 @@
 {
   "name": "round",
   "private": true,
-  "version": "1.1.0",
+  "version": "1.2.0",
   "type": "module",
   "description": "Whose round is it? Local-first Singapore receipt splitting with on-device LMStudio OCR.",
   "scripts": {
