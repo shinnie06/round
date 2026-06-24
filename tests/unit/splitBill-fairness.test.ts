@@ -35,7 +35,7 @@ function slices(state: RoundState): Slice[] {
 
 function exactFood(state: RoundState, sl: Slice[]): number[] {
   const f = state.diners.map(() => 0)
-  for (const s of sl) for (const i of s.parts) f[i] += s.cost / s.parts.length
+  for (const s of sl) for (const i of s.parts) f[i] = (f[i] ?? 0) + s.cost / s.parts.length
   return f
 }
 
