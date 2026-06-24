@@ -99,6 +99,19 @@ describe('buildShareText', () => {
     expect(buildShareText(worked, splitBill(worked))).toBe(buildShareText(worked, splitBill(worked)))
   })
 
+  it('collection rounding: headers show rounded amounts, no line/charge rows', () => {
+    const st = round({
+      diners: [diner('host', 'host'), diner('a', 'a')],
+      items: [{ id: 'x', name: 'x', qty: 1, unitPrice: cents(2017), assignedDinerIds: [] }],
+      servicePct: 0, gstPct: 0, payerId: 'host', collectRounding: cents(10),
+    })
+    const split = splitBill(st)
+    const text = buildShareText(st, split)
+    // 'a' owes ~1009¢ → collected 1000¢ → "$10.00"; no "Service charge"/line rows.
+    expect(text).toContain('a — $10.00')
+    expect(text).not.toContain('Service charge')
+  })
+
   it('share text footer matches the SettleSheet grand total for a portioned round', () => {
     const split = splitBill(worked)
     const text = buildShareText(worked, split)

@@ -1,11 +1,13 @@
 'use client'
 import { useMemo, useState } from 'react'
 import { splitBill } from '@/math/splitBill'
+import { cents } from '@/math/money'
 import { useStore } from '@/state/store'
 import { Money } from '@/components/Money'
 import { Sheet } from '@/components/Sheet'
 import { DinerCard } from './DinerCard'
 import { ShareActions } from './ShareActions'
+import { collectionView } from './collectionRounding'
 
 /**
  * Square Up: per-diner totals over the workspace. The footer renders
@@ -14,10 +16,12 @@ import { ShareActions } from './ShareActions'
  */
 export function SettleSheet() {
   const round = useStore((s) => s.round)
+  const readOnly = useStore((s) => s.readOnly)
   const open = useStore((s) => s.screen) === 'settle'
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
   const split = useMemo(() => splitBill(round), [round])
+  const view = useMemo(() => collectionView(round, split), [round, split])
 
   return (
     <Sheet
@@ -44,11 +48,20 @@ export function SettleSheet() {
                   split={ds}
                   expanded={expandedId === d.id}
                   onToggle={() => setExpandedId((cur) => (cur === d.id ? null : d.id))}
+                  displayAmount={view.amountByDiner[d.id]}
+                  collapsedOnly={view.active}
                 />
               </li>
             )
           })}
         </ul>
+
+        {view.active && !readOnly && view.absorbed > 0 && (
+          <p className="text-small text-cream-faint">
+            You'll collect <Money cents={cents(split.breakdown.grandTotal - view.absorbed)} />; you cover{' '}
+            <Money cents={cents(view.absorbed)} />.
+          </p>
+        )}
 
         <div
           aria-live="polite"
