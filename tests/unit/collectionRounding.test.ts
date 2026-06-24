@@ -15,6 +15,18 @@ it('inactive when off or payer unset', () => {
   expect(collectionView(st, splitBill(st)).active).toBe(false)
 })
 
+it('inert when unit <= 0 but payer is set', () => {
+  const st = base({ diners: [diner('host'), diner('a')], items: [{ id: 'x', name: 'x', qty: 1, unitPrice: cents(1000), assignedDinerIds: [] }], payerId: 'host', collectRounding: cents(0) })
+  expect(collectionView(st, splitBill(st)).active).toBe(false)
+})
+
+it('inert when payer id is set but not in the split (stale payer)', () => {
+  const st = base({ diners: [diner('a'), diner('b')], items: [{ id: 'x', name: 'x', qty: 1, unitPrice: cents(1000), assignedDinerIds: [] }], payerId: 'ghost', collectRounding: cents(10) })
+  const v = collectionView(st, splitBill(st))
+  expect(v.active).toBe(false)
+  expect(v.absorbed).toBe(0)
+})
+
 it('rounds non-payers down to the unit; payer keeps true share; absorbed = Σ deltas', () => {
   const st = base({
     diners: [diner('host'), diner('a'), diner('b')],
