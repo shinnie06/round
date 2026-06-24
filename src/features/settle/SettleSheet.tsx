@@ -8,6 +8,7 @@ import { Sheet } from '@/components/Sheet'
 import { DinerCard } from './DinerCard'
 import { ShareActions } from './ShareActions'
 import { collectionView } from './collectionRounding'
+import { CollectionControls } from './CollectionControls'
 
 /**
  * Square Up: per-diner totals over the workspace. The footer renders
@@ -70,6 +71,8 @@ export function SettleSheet() {
           <span className="text-cream-dim">Everyone together</span>
           <Money cents={split.breakdown.grandTotal} className="text-cream" />
         </div>
+
+        {!readOnly && <CollectionControls />}
 
         <ShareActions split={split} />
       </div>
