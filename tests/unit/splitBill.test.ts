@@ -79,16 +79,13 @@ describe('splitBill', () => {
     expect(total(s)).toBe(s.breakdown.grandTotal)
   })
 
-  it('residual diner surfaces when manual edits leave drift', () => {
-    // Construct via the pipeline: normally residual is 0 by design.
+  it('conservation: Σ perDiner.total === grandTotal', () => {
     const state = round({
       diners: [diner('a'), diner('b'), diner('c')],
       items: [item('x', 1003)],
     })
     const s = splitBill(state)
     expect(total(s)).toBe(s.breakdown.grandTotal)
-    expect(s.residual).toBe(0)
-    expect(s.residualDinerId).toBeNull()
   })
 
   it('empty round → zero everything', () => {
@@ -99,7 +96,7 @@ describe('splitBill', () => {
 })
 
 describe('splitBill — rounding line', () => {
-  it('rounding flows into the grand total and is distributed (no single-payer residual)', () => {
+  it('rounding flows into the grand total and is distributed proportionally', () => {
     const state = round({
       diners: [diner('big'), diner('small')],
       items: [item('feast', 8000, 1, ['big']), item('side', 2000, 1, ['small'])],
@@ -113,8 +110,6 @@ describe('splitBill — rounding line', () => {
     expect(s.breakdown.grandTotal).toBe(9998)
     expect(total(s)).toBe(9998)
     expect(big.total + small.total).toBe(9998) // rounding folded into totals, conserved
-    expect(s.residual).toBe(0)
-    expect(s.residualDinerId).toBeNull()
   })
 
   it('card reconciliation holds for every diner when a rounding line is folded in', () => {
@@ -258,9 +253,6 @@ describe('splitBill — portions', () => {
     // subtotal = 1250 + 250 = 1500, NOT 2500 — the orphan's 1000¢ is excluded.
     expect(s.breakdown.subtotal).toBe(1500)
     expect(s.breakdown.grandTotal).toBe(1500)
-    // Excluded, not residual-pinned:
-    expect(s.residual).toBe(0)
-    expect(s.residualDinerId).toBeNull()
     // The global invariant still holds against the (lower) grand total.
     expect(s.perDiner.reduce((acc, d) => acc + d.total, 0)).toBe(s.breakdown.grandTotal)
   })

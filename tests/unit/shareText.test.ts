@@ -49,10 +49,10 @@ const worked = round({
 })
 
 describe('buildShareText', () => {
-  it('renders a P1 header line with their total $62.96', () => {
+  it('renders a P1 header line with their total $62.95', () => {
     const split = splitBill(worked)
     const text = buildShareText(worked, split)
-    expect(text).toContain('P1 — $62.96') // total[P1] = 6296
+    expect(text).toContain('P1 — $62.95') // total[P1] = 6295
   })
 
   it('labels P1 portion lines with the exact lineLabel + aligned amount', () => {

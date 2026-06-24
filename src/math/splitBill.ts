@@ -38,8 +38,6 @@ export interface DinerSplit {
 export interface BillSplit {
   breakdown: ChargeBreakdown
   perDiner: DinerSplit[]
-  residual: Cents
-  residualDinerId: string | null
 }
 
 // Split integer `total` across `targets` (signed exact values that sum to ~total)
@@ -183,5 +181,5 @@ export function splitBill(state: RoundState): BillSplit {
     }
   })
 
-  return { breakdown, perDiner, residual: ZERO, residualDinerId: null }
+  return { breakdown, perDiner }
 }

@@ -42,7 +42,6 @@ export function SettleSheet() {
                 <DinerCard
                   diner={d}
                   split={ds}
-                  absorbedResidual={split.residualDinerId === d.id ? split.residual : 0}
                   expanded={expandedId === d.id}
                   onToggle={() => setExpandedId((cur) => (cur === d.id ? null : d.id))}
                 />

@@ -11,19 +11,16 @@ import { dinerCardRows } from './dinerCardRows'
 
 /**
  * One diner's settle card. Collapsed: name + what they owe. Expanded:
- * the full story — food, discount share, service, GST, and the "+1¢
- * rounding" annotation when this diner absorbed the residual.
+ * the full story — food, discount share, service, and GST.
  */
 export function DinerCard({
   diner,
   split,
-  absorbedResidual,
   expanded,
   onToggle,
 }: {
   diner: Diner
   split: DinerSplit
-  absorbedResidual: number
   expanded: boolean
   onToggle: () => void
 }) {
@@ -68,17 +65,6 @@ export function DinerCard({
                   </dd>
                 </div>
               ))}
-              {absorbedResidual !== 0 && (
-                <div className="flex justify-between text-cream-faint">
-                  <dt>
-                    {absorbedResidual > 0 ? '+' : '−'}
-                    {Math.abs(absorbedResidual)}¢ rounding
-                  </dt>
-                  <dd>
-                    <Money cents={cents(absorbedResidual)} />
-                  </dd>
-                </div>
-              )}
             </dl>
           </motion.div>
         )}
