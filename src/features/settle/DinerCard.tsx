@@ -34,31 +34,38 @@ export function DinerCard({
   displayAmount?: number
   collapsedOnly?: boolean
 }) {
-  const rows = dinerCardRows(split)
+  const rows = collapsedOnly ? [] : dinerCardRows(split)
+
+  const headerInner = (
+    <>
+      <span
+        className="h-3 w-3 shrink-0 rounded-full"
+        style={{ background: DINER_COLORS[diner.colorIdx % DINER_COLORS.length] }}
+        aria-hidden
+      />
+      <span className="flex-1 truncate text-body text-cream">{diner.name}</span>
+      <Money cents={cents(displayAmount ?? (split.total as number))} className="text-body text-cream" />
+      {!collapsedOnly && (
+        <ChevronDown
+          size={16}
+          aria-hidden
+          className={cn('text-cream-faint transition-transform', expanded && 'rotate-180')}
+        />
+      )}
+    </>
+  )
+
+  const headerClass = 'flex w-full min-h-14 items-center gap-3 px-4 text-left'
 
   return (
     <div className="overflow-hidden rounded-2xl border border-line bg-ink-2">
-      <button
-        type="button"
-        aria-expanded={collapsedOnly ? undefined : expanded}
-        onClick={collapsedOnly ? undefined : onToggle}
-        className="flex w-full min-h-14 items-center gap-3 px-4 text-left"
-      >
-        <span
-          className="h-3 w-3 shrink-0 rounded-full"
-          style={{ background: DINER_COLORS[diner.colorIdx % DINER_COLORS.length] }}
-          aria-hidden
-        />
-        <span className="flex-1 truncate text-body text-cream">{diner.name}</span>
-        <Money cents={cents(displayAmount ?? (split.total as number))} className="text-body text-cream" />
-        {!collapsedOnly && (
-          <ChevronDown
-            size={16}
-            aria-hidden
-            className={cn('text-cream-faint transition-transform', expanded && 'rotate-180')}
-          />
-        )}
-      </button>
+      {collapsedOnly ? (
+        <div className={headerClass}>{headerInner}</div>
+      ) : (
+        <button type="button" aria-expanded={expanded} onClick={onToggle} className={headerClass}>
+          {headerInner}
+        </button>
+      )}
 
       {!collapsedOnly && (
         <AnimatePresence initial={false}>

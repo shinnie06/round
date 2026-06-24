@@ -110,6 +110,10 @@ describe('buildShareText', () => {
     // 'a' owes ~1009¢ → collected 1000¢ → "$10.00"; no "Service charge"/line rows.
     expect(text).toContain('a — $10.00')
     expect(text).not.toContain('Service charge')
+    // Per-item food rows are suppressed too: no indented line-item rows at all.
+    // (The true grand total $20.17 still appears in the footer — that's intentional.)
+    expect(text.split('\n').some((l) => l.startsWith('  '))).toBe(false)
+    expect(text).toContain('Everyone together — $20.17')
   })
 
   it('share text footer matches the SettleSheet grand total for a portioned round', () => {
