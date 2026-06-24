@@ -54,6 +54,9 @@ function splitToTarget(total: number, targets: number[]): number[] {
   const keys = [...Array(n).keys()]
   if (leftover > 0) {
     keys.sort((a, b) => frac[b]! - frac[a]! || a - b)
+    // Note: `% n` cycling is sum-preserving but not nearest-to-target when |leftover| > n
+    // (only reachable for extreme chargeBlock < 0 discount cases); per-diner total stays
+    // authoritative and these charge columns are display-only.
     for (let k = 0; k < leftover; k++) res[keys[k % n]!]! += 1
   } else if (leftover < 0) {
     keys.sort((a, b) => frac[a]! - frac[b]! || a - b)

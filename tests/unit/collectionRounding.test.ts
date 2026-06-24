@@ -44,3 +44,44 @@ it('rounds non-payers down to the unit; payer keeps true share; absorbed = Σ de
   const absorbed = ['a', 'b'].reduce((s, id) => s + (trueByDiner[id]! - v.amountByDiner[id]!), 0)
   expect(v.absorbed).toBe(absorbed)
 })
+
+it('treated/zero payer absorbs everyone\'s round-off (payer share is $0)', () => {
+  // host is treated — item assigned only to a and b, so host.total === 0.
+  const st = base({
+    diners: [diner('host'), diner('a'), diner('b')],
+    items: [{ id: 'x', name: 'x', qty: 1, unitPrice: cents(9989), assignedDinerIds: ['a', 'b'] }],
+    servicePct: 0, gstPct: 0,
+    payerId: 'host', collectRounding: cents(10),
+  })
+  const split = splitBill(st)
+  const v = collectionView(st, split)
+  const trueByDiner = Object.fromEntries(split.perDiner.map((d) => [d.dinerId, d.total]))
+  expect(v.active).toBe(true)
+  expect(trueByDiner['host']).toBe(0) // sanity: host truly owes $0
+  expect(v.amountByDiner['host']).toBe(0) // payer keeps true share ($0)
+  for (const id of ['a', 'b']) expect(v.amountByDiner[id]!).toBe(Math.floor(trueByDiner[id]! / 10) * 10)
+  const absorbed = ['a', 'b'].reduce((s, id) => s + (trueByDiner[id]! - v.amountByDiner[id]!), 0)
+  expect(v.absorbed).toBe(absorbed)
+})
+
+it('non-payer whose true total < collection unit collects 0', () => {
+  // a owes only 7¢ (< 10¢ unit), so floor(7/10)*10 === 0; that 7¢ goes to absorbed.
+  const st = base({
+    diners: [diner('host'), diner('a')],
+    items: [
+      { id: 'small', name: 'small', qty: 1, unitPrice: cents(7), assignedDinerIds: ['a'] },
+      { id: 'big',   name: 'big',   qty: 1, unitPrice: cents(500), assignedDinerIds: ['host'] },
+    ],
+    servicePct: 0, gstPct: 0,
+    payerId: 'host', collectRounding: cents(10),
+  })
+  const split = splitBill(st)
+  const v = collectionView(st, split)
+  const trueByDiner = Object.fromEntries(split.perDiner.map((d) => [d.dinerId, d.total]))
+  expect(trueByDiner['a']).toBe(7) // sanity: a's true share is exactly 7¢
+  expect(v.active).toBe(true)
+  expect(v.amountByDiner['a']).toBe(Math.floor(trueByDiner['a']! / 10) * 10) // === 0
+  expect(v.amountByDiner['a']).toBe(0)
+  const absorbed = trueByDiner['a']! - v.amountByDiner['a']!
+  expect(v.absorbed).toBe(absorbed) // 7¢ absorbed by payer
+})
