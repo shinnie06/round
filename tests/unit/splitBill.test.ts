@@ -99,7 +99,7 @@ describe('splitBill', () => {
 })
 
 describe('splitBill — rounding line', () => {
-  it('rounding flows into the grand total and lands on the highest payer', () => {
+  it('rounding flows into the grand total and is distributed (no single-payer residual)', () => {
     const state = round({
       diners: [diner('big'), diner('small')],
       items: [item('feast', 8000, 1, ['big']), item('side', 2000, 1, ['small'])],
@@ -108,10 +108,13 @@ describe('splitBill — rounding line', () => {
       rounding: cents(-2),
     })
     const s = splitBill(state)
+    const big = s.perDiner.find((d) => d.dinerId === 'big')!
+    const small = s.perDiner.find((d) => d.dinerId === 'small')!
     expect(s.breakdown.grandTotal).toBe(9998)
     expect(total(s)).toBe(9998)
-    expect(s.residualDinerId).toBe('big')
-    expect(s.residual).toBe(-2)
+    expect(big.total + small.total).toBe(9998) // rounding folded into totals, conserved
+    expect(s.residual).toBe(0)
+    expect(s.residualDinerId).toBeNull()
   })
 })
 
@@ -169,10 +172,10 @@ describe('splitBill — portions', () => {
     expect(s.breakdown.subtotal).toBe(16200)
     expect(s.breakdown.grandTotal).toBe(19424)
 
-    // Per-diner totals and THE invariant
-    expect(tot('P1')).toBe(6296)
+    // B2 totals (round-once over exact food; food columns unchanged):
+    expect(tot('P1')).toBe(6295)
     expect(tot('P2')).toBe(5815)
-    expect(tot('P3')).toBe(4615)
+    expect(tot('P3')).toBe(4616)
     expect(tot('M')).toBe(2698)
     expect(total(s)).toBe(19424)
     expect(total(s)).toBe(s.breakdown.grandTotal)
@@ -343,6 +346,44 @@ describe('splitBill — portions', () => {
       baseline.perDiner.map((d) => d.food),
     )
     expect(baseline.perDiner.map((d) => d.food)).toEqual([500, 500])
+  })
+})
+
+describe('splitBill — fairness (B2)', () => {
+  const portioned = (
+    id: string, unitPrice: number, qty: number,
+    portions: { units: number; assignedDinerIds: string[] }[],
+  ): Item => ({ id, name: id, qty, unitPrice: cents(unitPrice), assignedDinerIds: [], portions })
+
+  it('Bistro OneThirtySix: 7 identical diners land within 1¢', () => {
+    const names = ['Shi Ling', 'Su yi', 'Suan sim', 'jit', 'Edwin', 'connie', 'sin yun', 'Shu fen']
+    const state = round({
+      diners: names.map((n) => diner(n)),
+      items: [
+        portioned('adobo', 1590, 3, [
+          { units: 2, assignedDinerIds: ['Shi Ling', 'Edwin'] },
+          { units: 1, assignedDinerIds: [] },
+        ]),
+        item('snapper', 1590, 5, ['Suan sim', 'jit', 'connie', 'sin yun', 'Shu fen']),
+        portioned('chicken', 1490, 3, [
+          { units: 2, assignedDinerIds: [] },
+          { units: 1, assignedDinerIds: ['Su yi'] },
+        ]),
+      ],
+    })
+    const s = splitBill(state)
+    const byName = Object.fromEntries(s.perDiner.map((d) => [d.dinerId, d.total]))
+    // Seven diners owe an identical exact share (2161.25¢) → must be 2591 or 2592, never 2590/2593.
+    const seven = names.filter((n) => n !== 'Su yi').map((n) => byName[n]!)
+    expect(Math.max(...seven) - Math.min(...seven)).toBeLessThanOrEqual(1)
+    expect(byName['Su yi']).toBe(2472)
+    expect(s.breakdown.grandTotal).toBe(20611)
+    expect(total(s)).toBe(20611)
+    // Card reconciliation for one diner: lines + charges === total
+    const sl = s.perDiner.find((d) => d.dinerId === 'Shi Ling')!
+    const lineSum = sl.lines.reduce((a, l) => a + l.food, 0)
+    expect(lineSum).toBe(sl.food)
+    expect(sl.food + sl.discount + sl.service + sl.gst).toBe(sl.total)
   })
 })
 

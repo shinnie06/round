@@ -1,7 +1,6 @@
 import { addC, cents, type Cents, ZERO } from './money'
 import { applyCharges, type ChargeBreakdown } from './singapore'
 import { distributeProportionally } from './proportional'
-import { distributeResidual } from './residual'
 import { lineTotal, portionTotal, isPortioned, type Diner, type Item, type RoundState } from '@/state/types'
 
 /**
@@ -11,10 +10,8 @@ import { lineTotal, portionTotal, isPortioned, type Diner, type Item, type Round
  *      cents across its assigned diners (the `[]` sentinel = everyone),
  *      largest-remainder per item so every cent lands on somebody.
  *   2. applyCharges: IRAS order (discount → service → GST), clamped.
- *   3. Each charge is distributed across diners proportional to their
- *      food share (discount as a negative amount).
- *   4. distributeResidual: signed leftover cents (only possible after
- *      manual charge edits) pinned on the highest payer.
+ *   3. B2: per-diner total rounded ONCE via largest-remainder over exact
+ *      food weights. Charge columns back-derived from (total − food).
  *
  * Invariant (fuzz-tested): Σ per-diner totals === grand total. Always.
  */
@@ -45,6 +42,28 @@ export interface BillSplit {
   residualDinerId: string | null
 }
 
+// Split integer `total` across `targets` (signed exact values that sum to ~total)
+// into integers summing EXACTLY to total, each as close to its target as possible.
+// Largest-remainder, sign-aware. Used to back-derive per-diner charge columns so
+// the expanded card reconciles (food + discount + service + gst === total).
+function splitToTarget(total: number, targets: number[]): number[] {
+  const n = targets.length
+  if (n === 0) return []
+  const base = targets.map((t) => Math.floor(t) + 0) // +0 normalises −0 → +0
+  const res = base.slice()
+  let leftover = total - base.reduce((a, b) => a + b, 0)
+  const frac = targets.map((t, i) => t - base[i]!)
+  const keys = [...Array(n).keys()]
+  if (leftover > 0) {
+    keys.sort((a, b) => frac[b]! - frac[a]! || a - b)
+    for (let k = 0; k < leftover; k++) res[keys[k % n]!]! += 1
+  } else if (leftover < 0) {
+    keys.sort((a, b) => frac[a]! - frac[b]! || a - b)
+    for (let k = 0; k < -leftover; k++) res[keys[k % n]!]! -= 1
+  }
+  return res
+}
+
 // `[]` → everyone; else the explicit ids that still exist. Identical rule at
 // item and portion level (sentinel-meaning-identical invariant). The []-check
 // is BEFORE the filter, so literal-[] (everyone) and all-unknown-after-filter
@@ -67,6 +86,7 @@ function allocateEqually(
   participants: string[],
   idx: Map<string, number>,
   food: Cents[],
+  exactFood: number[],
   item: Item,
   linesByDiner: FoodLine[][],
   portion: FoodLine['portion'],
@@ -76,9 +96,11 @@ function allocateEqually(
     cost,
     participants.map(() => 1),
   )
+  const each = cost / participants.length // exact fractional share (display total uses this)
   participants.forEach((id, k) => {
     const i = idx.get(id)!
     food[i] = addC(food[i]!, shares[k]!)
+    exactFood[i] = exactFood[i]! + each
     linesByDiner[i]!.push({ itemId: item.id, name: item.name, food: shares[k]!, portion })
   })
 }
@@ -87,6 +109,7 @@ export function splitBill(state: RoundState): BillSplit {
   const { diners, items } = state
   const idx = new Map(diners.map((d, i) => [d.id, i]))
   const food: Cents[] = diners.map(() => ZERO)
+  const exactFood: number[] = diners.map(() => 0)
   const linesByDiner: FoodLine[][] = diners.map(() => [])
 
   for (const item of items) {
@@ -97,7 +120,7 @@ export function splitBill(state: RoundState): BillSplit {
       for (const p of item.portions!) {
         const cost = portionTotal(item.unitPrice, p.units)
         const participants = resolveParticipants(p.assignedDinerIds, diners, idx)
-        allocateEqually(cost, participants, idx, food, item, linesByDiner, {
+        allocateEqually(cost, participants, idx, food, exactFood, item, linesByDiner, {
           units: p.units,
           qty: item.qty,
           shareOf: participants.length,
@@ -110,6 +133,7 @@ export function splitBill(state: RoundState): BillSplit {
         resolveParticipants(item.assignedDinerIds, diners, idx),
         idx,
         food,
+        exactFood,
         item,
         linesByDiner,
         undefined,
@@ -125,28 +149,33 @@ export function splitBill(state: RoundState): BillSplit {
     rounding: state.rounding,
   })
 
-  const weights = food.map((c) => c as number)
-  const discountShares = distributeProportionally(cents(-breakdown.discount), weights)
-  const serviceShares = distributeProportionally(breakdown.service, weights)
-  const gstShares = distributeProportionally(breakdown.gst, weights)
+  // B2: the authoritative per-diner total — ONE largest-remainder pass over the
+  // EXACT food shares. Identical exact shares ⇒ totals differ by ≤1¢ by construction,
+  // and Σ totals === grandTotal. (Weights are exact, NOT the rounded food[].)
+  const totals = distributeProportionally(breakdown.grandTotal, exactFood)
+  const sub = subtotal as number
 
-  const totals = diners.map((_, i) =>
-    addC(food[i]!, discountShares[i]!, serviceShares[i]!, gstShares[i]!),
-  )
-  const { totals: adjusted, absorbedBy, residual } = distributeResidual(totals, breakdown.grandTotal)
-
-  return {
-    breakdown,
-    perDiner: diners.map((d, i) => ({
+  const perDiner: DinerSplit[] = diners.map((d, i) => {
+    // Back-derive display charge columns from the diner's fixed total. The charge
+    // block (everything past food) is split across service/gst/discount by their
+    // exact magnitudes so food + discount + service + gst === total.
+    const block = (totals[i]! as number) - (food[i]! as number)
+    const share = sub === 0 ? 0 : exactFood[i]! / sub
+    const [service, gst, discount] = splitToTarget(block, [
+      (breakdown.service as number) * share,
+      (breakdown.gst as number) * share,
+      -(breakdown.discount as number) * share,
+    ])
+    return {
       dinerId: d.id,
       food: food[i]!,
-      discount: discountShares[i]!,
-      service: serviceShares[i]!,
-      gst: gstShares[i]!,
-      total: adjusted[i]!,
+      discount: cents(discount!),
+      service: cents(service!),
+      gst: cents(gst!),
+      total: totals[i]!,
       lines: linesByDiner[i]!,
-    })),
-    residual,
-    residualDinerId: absorbedBy === null ? null : diners[absorbedBy]!.id,
-  }
+    }
+  })
+
+  return { breakdown, perDiner, residual: ZERO, residualDinerId: null }
 }
