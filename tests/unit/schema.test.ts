@@ -89,6 +89,21 @@ describe('roundStateZod — scannedTotal compatibility', () => {
   })
 })
 
+describe('roundStateZod — payerId/collectRounding compatibility', () => {
+  it('defaults payerId/collectRounding for pre-feature payloads, round-trips new ones', async () => {
+    const { parseRoundState } = await import('@/state/schema')
+    const legacy = parseRoundState({
+      venue: 'V', diners: [], items: [], discount: 0, servicePct: 0.1, gstPct: 0.09,
+      rounding: 0, scan: null, scannedTotal: null,
+    })!
+    expect(legacy.payerId).toBeNull()
+    expect(legacy.collectRounding).toBe(0)
+    const withPayer = parseRoundState({ ...legacy, payerId: 'd1', collectRounding: 10 })!
+    expect(withPayer.payerId).toBe('d1')
+    expect(withPayer.collectRounding).toBe(10)
+  })
+})
+
 describe('RECEIPT_JSON_SCHEMA', () => {
   it('is strict and requires every top-level field', () => {
     expect(RECEIPT_JSON_SCHEMA.strict).toBe(true)

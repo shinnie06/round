@@ -102,6 +102,18 @@ describe('store — load, read-only, reset', () => {
   })
 })
 
+describe('store — payer', () => {
+  it('removing the payer diner clears payerId', () => {
+    const a = useStore.getState().actions
+    a.reset(); a.addDiner('Alice'); a.addDiner('Bob')
+    const [alice] = useStore.getState().round.diners
+    a.setPayer(alice!.id)
+    expect(useStore.getState().round.payerId).toBe(alice!.id)
+    a.removeDiner(alice!.id)
+    expect(useStore.getState().round.payerId).toBeNull()
+  })
+})
+
 describe('store — rounding', () => {
   it('setRounding stores signed cents and reset clears it', () => {
     a().setRounding(cents(-2))

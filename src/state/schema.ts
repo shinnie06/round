@@ -74,6 +74,10 @@ export const roundStateZod = z.object({
     .nullable(),
   /** default(null): drafts and share links from pre-scannedTotal versions stay valid */
   scannedTotal: centsZod.nullable().default(null),
+  /** default(null): pre-feature drafts/links stay valid */
+  payerId: z.string().nullable().default(null),
+  /** default(0 = off): pre-feature drafts/links stay valid */
+  collectRounding: centsZod.default(0),
 })
 
 export function parseRoundState(data: unknown): RoundState | null {

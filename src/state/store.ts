@@ -16,6 +16,8 @@ export function emptyRound(): RoundState {
     rounding: ZERO,
     scan: null,
     scannedTotal: null,
+    payerId: null,
+    collectRounding: ZERO,
   }
 }
 
@@ -52,6 +54,8 @@ export interface StoreState {
     setServicePct: (pct: number) => void
     setGstPct: (pct: number) => void
     setRounding: (rounding: Cents) => void
+    setPayer: (id: string | null) => void
+    setCollectRounding: (unit: Cents) => void
     reset: () => void
   }
 }
@@ -104,6 +108,7 @@ export const useStore = create<StoreState>()(
       removeDiner: (id) =>
         set((s) => {
           s.round.diners = s.round.diners.filter((d) => d.id !== id)
+          if (s.round.payerId === id) s.round.payerId = null
           for (const item of s.round.items) {
             if (item.assignedDinerIds.length !== 0)
               item.assignedDinerIds = item.assignedDinerIds.filter((a) => a !== id)
@@ -280,6 +285,16 @@ export const useStore = create<StoreState>()(
       setRounding: (rounding) =>
         set((s) => {
           s.round.rounding = rounding
+        }),
+
+      setPayer: (id) =>
+        set((s) => {
+          s.round.payerId = id
+        }),
+
+      setCollectRounding: (unit) =>
+        set((s) => {
+          s.round.collectRounding = cents(Math.max(0, unit))
         }),
 
       reset: () =>

@@ -59,6 +59,10 @@ export interface RoundState {
   /** Printed grand total from the scanned receipt — anchor for the live
    *  "does it add up" check; null for manual entry / total-less receipts. */
   scannedTotal: Cents | null
+  /** Diner who fronts the bill and absorbs collection-rounding loss. null = none. */
+  payerId: string | null
+  /** Round each NON-payer down to this unit for easy collection; 0 = off. */
+  collectRounding: Cents
 }
 
 /** UNCHANGED. Portions never change what the whole line costs.

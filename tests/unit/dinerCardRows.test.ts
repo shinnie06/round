@@ -15,6 +15,8 @@ const round = (over: Partial<RoundState>): RoundState => ({
   rounding: cents(0),
   scan: null,
   scannedTotal: null,
+  payerId: null,
+  collectRounding: cents(0),
   ...over,
 })
 

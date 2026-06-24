@@ -76,6 +76,8 @@ describe('splitBill property: exact-sum invariant', () => {
         rounding: cents(randInt(0, 8) - 4),
         scan: null,
         scannedTotal: null,
+        payerId: null,
+        collectRounding: cents(0),
       }
 
       const s = splitBill(state)

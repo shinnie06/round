@@ -187,6 +187,8 @@ describe('roundStateZod — §11 old reader strips portions (graceful degrade)',
       rounding: cents(0),
       scan: null,
       scannedTotal: null,
+      payerId: null,
+      collectRounding: cents(0),
     }
 
     // Simulate the OLD app's z.object reader, which strips the unknown `portions` key.

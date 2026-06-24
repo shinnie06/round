@@ -15,6 +15,8 @@ const state: RoundState = {
   rounding: cents(0),
   scan: null,
   scannedTotal: null,
+  payerId: null,
+  collectRounding: cents(0),
 }
 
 describe('shareMessage', () => {

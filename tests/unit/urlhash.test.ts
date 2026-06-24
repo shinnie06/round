@@ -24,6 +24,8 @@ const sample: RoundState = {
   rounding: cents(0),
   scan: { status: 'green', deltaCents: cents(0) },
   scannedTotal: cents(16768),
+  payerId: null,
+  collectRounding: cents(0),
 }
 
 describe('share hash codec', () => {

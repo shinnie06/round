@@ -77,5 +77,7 @@ export function mapToState(clean: CleanReceipt, verdict: Verdict): RoundState {
     // only status + delta are state (persisted, share-linked); resolved is OCR-internal
     scan: { status: verdict.status, deltaCents: verdict.deltaCents },
     scannedTotal: clean.grand_total === null ? null : fromDollars(clean.grand_total),
+    payerId: null,
+    collectRounding: ZERO,
   }
 }
