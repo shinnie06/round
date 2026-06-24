@@ -116,6 +116,22 @@ describe('splitBill — rounding line', () => {
     expect(s.residual).toBe(0)
     expect(s.residualDinerId).toBeNull()
   })
+
+  it('card reconciliation holds for every diner when a rounding line is folded in', () => {
+    // Nonzero cash-rounding: its per-diner share lives inside the back-derived
+    // service/gst/discount columns (no separate rounding row, per design §3.1).
+    // The card contract food + discount + service + gst === total must still hold.
+    const state = round({
+      diners: [diner('a'), diner('b'), diner('c')],
+      items: [item('shared', 1000, 1, [])], // everyone
+      rounding: cents(-3),
+    })
+    const s = splitBill(state)
+    for (const d of s.perDiner) {
+      expect(d.food + d.discount + d.service + d.gst).toBe(d.total)
+    }
+    expect(total(s)).toBe(s.breakdown.grandTotal)
+  })
 })
 
 describe('splitBill — portions', () => {

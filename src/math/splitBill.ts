@@ -153,12 +153,18 @@ export function splitBill(state: RoundState): BillSplit {
   // EXACT food shares. Identical exact shares ⇒ totals differ by ≤1¢ by construction,
   // and Σ totals === grandTotal. (Weights are exact, NOT the rounded food[].)
   const totals = distributeProportionally(breakdown.grandTotal, exactFood)
-  const sub = subtotal as number
+  const sub = subtotal as number // Cents → plain number for the float division below
 
   const perDiner: DinerSplit[] = diners.map((d, i) => {
     // Back-derive display charge columns from the diner's fixed total. The charge
     // block (everything past food) is split across service/gst/discount by their
     // exact magnitudes so food + discount + service + gst === total.
+    //
+    // block = total − food includes this diner's share of the cash-rounding line.
+    // The three targets cover service/gst/discount ONLY, so splitToTarget folds the
+    // rounding remainder into those columns — there is NO separate rounding row (per
+    // design, spec §3.1). The per-diner total is authoritative; this column split is
+    // display-only.
     const block = (totals[i]! as number) - (food[i]! as number)
     const share = sub === 0 ? 0 : exactFood[i]! / sub
     const [service, gst, discount] = splitToTarget(block, [
